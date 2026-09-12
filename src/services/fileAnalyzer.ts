@@ -848,8 +848,13 @@ ${file.rawText.length > 4000 ? '\n... [Remaining text truncated] ...' : ''}
 \`\`\``;
     }
 
+    let pythonAgentOutput = '';
+    if (file.details?.pythonStdout) {
+      pythonAgentOutput = `\n- **Local Python Stego Engine Analysis Output**:\n\`\`\`\n${file.details.pythonStdout}\n\`\`\``;
+    }
+
     const flagAlert = file.flagCandidates && file.flagCandidates.length > 0
-      ? `\n> 🚩 **FLAG STATUS:** พบสตริงก์ Flag Candidates ในไฟล์นี้: ${file.flagCandidates.map(f => `\`${f}\``).join(', ')}\n`
+      ? `\n> 🚩 **FLAG STATUS:** ตรวจพบสตริงก์/LSB Flag ในไฟล์นี้: ${file.flagCandidates.map(f => `\`${f}\``).join(', ')}\n`
       : `\n> ℹ️ **FLAG STATUS:** ไม่มีข้อมูลของ Flag ในไฟล์นี้ (ไม่พบสตริงก์ Flag มาตรฐาน — เป็นไฟล์ทั่วไป หรือ Flag ซ่อนอยู่ใน Logic โปรแกรม ให้วิเคราะห์จากโครงสร้างภายในและข้อมูลที่แสดง)\n`;
 
     const stringsList = file.extractedStrings && file.extractedStrings.length > 0
@@ -867,6 +872,7 @@ ${file.rawText.length > 4000 ? '\n... [Remaining text truncated] ...' : ''}
 - **Magic Bytes**: \`${file.magicHex}\`
 - **Forensic Summary**: ${file.summary}
 ${extraDetails}
+${pythonAgentOutput}
 ${flagAlert}
 ${stringsList}
 ${hexdumpView}`;

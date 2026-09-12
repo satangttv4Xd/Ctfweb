@@ -801,18 +801,52 @@ export const FileInspector: React.FC<FileInspectorProps> = ({
 
                     {/* If Image: Show Image preview */}
                     {file.category === 'image' && file.imageBase64 && (
-                      <div style={{ backgroundColor: '#020617', border: '1px solid var(--border-subtle)', borderRadius: '0.5rem', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                        <img
-                          src={file.imageBase64}
-                          alt={file.name}
-                          style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
-                        />
-                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.6 }}>
-                          <strong style={{ color: '#c084fc' }}>ภาพสำหรับ Steganography / Multimodal Vision</strong>
-                          <div>• ตรวจสอบ LSB Red/Green/Blue planes</div>
-                          <div>• ตรวจสอบ EXIF metadata และ comment tag</div>
-                          <div>• ตรวจสอบ EOF padding data ต่อท้าย IEND</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ backgroundColor: '#020617', border: '1px solid var(--border-subtle)', borderRadius: '0.5rem', padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                          <img
+                            src={file.imageBase64}
+                            alt={file.name}
+                            style={{ maxHeight: '180px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
+                          />
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                            <strong style={{ color: '#c084fc' }}>ภาพสำหรับ Steganography / Multimodal Vision</strong>
+                            <div>• ตรวจสอบ LSB Red/Green/Blue planes</div>
+                            <div>• ตรวจสอบ EXIF metadata และ comment tag</div>
+                            <div>• ตรวจสอบ EOF padding data ต่อท้าย IEND</div>
+                          </div>
                         </div>
+
+                        {file.details?.pythonStdout && (
+                          <div style={{
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            border: '1px solid rgba(16, 185, 129, 0.3)',
+                            borderRadius: '0.5rem',
+                            padding: '0.75rem'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.4rem' }}>
+                              <Terminal size={14} color="#34d399" />
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#34d399' }}>
+                                ผลลัพธ์จาก Local Python Stego Engine (http://localhost:7788):
+                              </span>
+                            </div>
+                            <pre style={{
+                              margin: 0,
+                              padding: '0.5rem 0.75rem',
+                              backgroundColor: '#020617',
+                              borderRadius: '0.375rem',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              fontFamily: 'var(--font-mono, monospace)',
+                              fontSize: '0.75rem',
+                              color: '#6ee7b7',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-all',
+                              maxHeight: '180px',
+                              overflowY: 'auto'
+                            }}>
+                              {file.details.pythonStdout}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

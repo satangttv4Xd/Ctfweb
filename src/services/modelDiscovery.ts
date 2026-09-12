@@ -22,14 +22,15 @@ export interface ModelDiscoveryResult {
 
 // Candidate Gemini models to test in priority order
 export const GEMINI_TEST_CANDIDATES = [
+  'gemini-flash-lite-latest',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
   'gemini-2.5-pro',
   'gemini-1.5-pro',
   'gemini-3.7-flash',
   'gemini-3.5-flash-lite',
-  'gemini-2.0-flash-lite',
   'gemini-2.0-flash-exp'
 ];
 
@@ -65,11 +66,18 @@ export async function fetchAvailableGeminiModels(apiKey: string): Promise<string
 
     if (models.length === 0) return GEMINI_TEST_CANDIDATES;
 
-    // Prioritize flash and pro models
+    // Prioritize gemini-flash-lite-latest, flash-lite, and flash models
     const sorted = [...models].sort((a, b) => {
-      const aScore = (a.includes('flash') ? 2 : 0) + (a.includes('2.5') ? 3 : 0) + (a.includes('2.0') ? 2 : 0);
-      const bScore = (b.includes('flash') ? 2 : 0) + (b.includes('2.5') ? 3 : 0) + (b.includes('2.0') ? 2 : 0);
-      return bScore - aScore;
+      const getScore = (m: string) => {
+        if (m === 'gemini-flash-lite-latest') return 100;
+        let score = 0;
+        if (m.includes('flash-lite')) score += 50;
+        if (m.includes('flash')) score += 30;
+        if (m.includes('2.5')) score += 10;
+        if (m.includes('2.0')) score += 5;
+        return score;
+      };
+      return getScore(b) - getScore(a);
     });
 
     return sorted;
@@ -153,9 +161,14 @@ export async function scanForWorkingModel(
   }
 
   // Get candidate list
-  const candidateModels: string[] = provider === 'gemini'
-    ? Array.from(new Set([...(await fetchAvailableGeminiModels(cleanKey)), ...GEMINI_TEST_CANDIDATES]))
-    : OPENROUTER_TEST_CANDIDATES;
+  let candidateModels: string[];
+  if (provider === 'gemini') {
+    const fetched = await fetchAvailableGeminiModels(cleanKey);
+    const combined = Array.from(new Set(['gemini-flash-lite-latest', ...fetched, ...GEMINI_TEST_CANDIDATES]));
+    candidateModels = combined;
+  } else {
+    candidateModels = OPENROUTER_TEST_CANDIDATES;
+  }
 
   const logs: ModelTestLog[] = [];
   const maxToTest = Math.min(candidateModels.length, 12);
