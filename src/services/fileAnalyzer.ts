@@ -633,11 +633,11 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
 
         if (img.width > 0 && img.height > 0) {
           const canvas = document.createElement('canvas');
-          canvas.width = Math.min(img.width, 640);
-          canvas.height = Math.min(img.height, 640);
+          canvas.width = img.width;
+          canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixels = imgData.data;
 
@@ -648,7 +648,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
               let bitCount = 0;
               const extractedBytes: number[] = [];
 
-              for (let i = ch; i < pixels.length && extractedBytes.length < 2048; i += 4) {
+              for (let i = ch; i < pixels.length && extractedBytes.length < 4096; i += 4) {
                 const lsb = pixels[i] & 1;
                 byteVal = (byteVal << 1) | lsb;
                 bitCount++;
@@ -660,7 +660,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
               }
 
               const decodedText = new Uint8Array(extractedBytes);
-              const lsbStrings = extractPrintableStrings(decodedText, 4, 30);
+              const lsbStrings = extractPrintableStrings(decodedText, 4, 40);
               const lsbFlags = findFlagCandidates(lsbStrings);
               if (lsbFlags.length > 0) {
                 lsbFlags.forEach(f => flagCandidates.push(f));
