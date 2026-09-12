@@ -253,27 +253,29 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Terminal size={14} color="#34d399" />
             <span>Local Python Agent</span>
-                const cmdContent = `@echo off
-:: ============================================================
-:: 🤖 CTF SWARM STANDALONE WINDOWS AGENT LAUNCHER
-:: ============================================================
-title CTF Swarm Local Agent Engine (Windows Executable)
-color 0A
-cls
-echo.
-echo  ============================================================
-echo    🤖 CTF SWARM DESKTOP AGENT ENGINE (RUNNING ON YOUR PC)
-echo  ============================================================
-echo    Status : Ready & Listening on http://localhost:7788
-echo    Connect: Open https://ctfweb.vercel.app/ in your browser
-echo  ============================================================
-echo.
-
-node ctf-swarm-agent.js 2>nul || python -c "import http.server, socketserver, json, re, tempfile, os, base64; PORT = 7788; class H(http.server.BaseHTTPRequestHandler):\\n def do_OPTIONS(s): s.send_response(204); s.send_header('Access-Control-Allow-Origin', '*'); s.send_header('Access-Control-Allow-Methods', '*'); s.send_header('Access-Control-Allow-Headers', '*'); s.end_headers()\\n def do_GET(s): s.send_response(200); s.send_header('Access-Control-Allow-Origin', '*'); s.send_header('Content-Type', 'application/json'); s.end_headers(); s.wfile.write(b'{\\\"status\\\":\\\"ok\\\"}')\\n def do_POST(s):\\n  if s.path=='/api/analyze-stego':\\n   body=json.loads(s.rfile.read(int(s.headers.get('Content-Length',0))).decode('utf-8')); buf=base64.b64decode(body.get('fileBase64','').split(',')[-1]); found=set(); reg=r'(flag\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ctf\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ELEC\\\\{[A-Za-z0-9_\\\\-]{3,80}\\})'; text=buf.decode('latin-1',errors='ignore')\\n   for m in re.findall(reg,text,re.IGNORECASE): found.add(m)\\n   try:\\n    from PIL import Image; temp=tempfile.NamedTemporaryFile(delete=False,suffix='.png'); temp.write(buf); temp.close(); img=Image.open(temp.name)\\n    if img.mode in ('RGB','RGBA'):\\n     px=list(img.get_flattened_data() if hasattr(img,'get_flattened_data') else img.getdata())\\n     for c in range(3):\\n      bits=[str(p[c]&1) for p in (px if isinstance(px[0],(tuple,list)) else [px[i:i+3] for i in range(0,len(px),3)])]\\n      byte_arr=bytearray([int(''.join(bits[i:i+8]),2) for i in range(0,len(bits),8)])\\n      for m in re.findall(reg,byte_arr.decode('latin-1',errors='ignore'),re.IGNORECASE): found.add(m)\\n    os.unlink(temp.name)\\n   except Exception: pass\\n   s.send_response(200); s.send_header('Access-Control-Allow-Origin','*'); s.send_header('Content-Type','application/json'); s.end_headers(); s.wfile.write(json.dumps({'success':True,'stdout':'[Windows Executable Agent] Analyzed via PC Python Engine','flags':list(found)}).encode())\\nsocketserver.TCPServer(('',PORT),H).serve_forever()"
-
-pause
-`;
-                const blob = new Blob([cmdContent], { type: 'text/plain' });
+            <button
+              type="button"
+              onClick={() => {
+                const cmdLines = [
+                  '@echo off',
+                  ':: ============================================================',
+                  ':: 🤖 CTF SWARM STANDALONE WINDOWS AGENT LAUNCHER',
+                  ':: ============================================================',
+                  'title CTF Swarm Local Agent Engine (Windows Executable)',
+                  'color 0A',
+                  'cls',
+                  'echo.',
+                  'echo  ============================================================',
+                  'echo    🤖 CTF SWARM DESKTOP AGENT ENGINE (RUNNING ON YOUR PC)',
+                  'echo  ============================================================',
+                  'echo    Status : Ready & Listening on http://localhost:7788',
+                  'echo    Connect: Open https://ctfweb.vercel.app/ in your browser',
+                  'echo  ============================================================',
+                  'echo.',
+                  'python -c "import http.server, socketserver, json, re, tempfile, os, base64; PORT = 7788; class H(http.server.BaseHTTPRequestHandler):\\n def do_OPTIONS(s): s.send_response(204); s.send_header(\'Access-Control-Allow-Origin\', \'*\'); s.send_header(\'Access-Control-Allow-Methods\', \'*\'); s.send_header(\'Access-Control-Allow-Headers\', \'*\'); s.end_headers()\\n def do_GET(s): s.send_response(200); s.send_header(\'Access-Control-Allow-Origin\', \'*\'); s.send_header(\'Content-Type\', \'application/json\'); s.end_headers(); s.wfile.write(b\'{\\\"status\\\":\\\"ok\\\"}\')\\n def do_POST(s):\\n  if s.path==\'/api/analyze-stego\':\\n   body=json.loads(s.rfile.read(int(s.headers.get(\'Content-Length\',0))).decode(\'utf-8\')); buf=base64.b64decode(body.get(\'fileBase64\',\'\').split(\',\')[-1]); found=set(); reg=r\'(flag\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ctf\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ELEC\\\\{[A-Za-z0-9_\\\\-]{3,80}\\})\'; text=buf.decode(\'latin-1\',errors=\'ignore\')\\n   for m in re.findall(reg,text,re.IGNORECASE): found.add(m)\\n   try:\\n    from PIL import Image; temp=tempfile.NamedTemporaryFile(delete=False,suffix=\'.png\'); temp.write(buf); temp.close(); img=Image.open(temp.name)\\n    if img.mode in (\'RGB\',\'RGBA\'):\\n     px=list(img.get_flattened_data() if hasattr(img,\'get_flattened_data\') else img.getdata())\\n     for c in range(3):\\n      bits=[str(p[c]&1) for p in (px if isinstance(px[0],(tuple,list)) else [px[i:i+3] for i in range(0,len(px),3)])]\\n      byte_arr=bytearray([int(\'\'.join(bits[i:i+8]),2) for i in range(0,len(bits),8)])\\n      for m in re.findall(reg,byte_arr.decode(\'latin-1\',errors=\'ignore\'),re.IGNORECASE): found.add(m)\\n    os.unlink(temp.name)\\n   except Exception: pass\\n   s.send_response(200); s.send_header(\'Access-Control-Allow-Origin\',\'*\'); s.send_header(\'Content-Type\',\'application/json\'); s.end_headers(); s.wfile.write(json.dumps({\'success\':True,\'stdout\':\'[Windows Executable Agent] Analyzed via PC Python Engine\',\'flags\':list(found)}).encode())\\nsocketserver.TCPServer((\'\',PORT),H).serve_forever()"',
+                  'pause'
+                ];
+                const blob = new Blob([cmdLines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
