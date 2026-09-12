@@ -28,24 +28,34 @@ export function verifyToken(inputToken: string): boolean {
 }
 
 /**
- * Get stored token authentication status
+ * Always returns false on new page session load so token must be re-entered every time
  */
 export function isTokenAuthenticated(): boolean {
-  const storedToken = localStorage.getItem(STORAGE_AUTH_KEY);
-  if (!storedToken) return false;
-  return verifyToken(storedToken);
+  // Clear any legacy stored tokens
+  try {
+    localStorage.removeItem(STORAGE_AUTH_KEY);
+    sessionStorage.removeItem(STORAGE_AUTH_KEY);
+  } catch {
+    // ignore
+  }
+  return false;
 }
 
 /**
- * Save valid auth token to local storage
+ * Save auth token dummy helper (no long-term persistence)
  */
-export function saveAuthToken(token: string): void {
-  localStorage.setItem(STORAGE_AUTH_KEY, token.trim());
+export function saveAuthToken(_token: string): void {
+  // Do not store in localStorage so token is required every time website opens
 }
 
 /**
  * Clear authentication state (Logout / Lock)
  */
 export function clearAuthToken(): void {
-  localStorage.removeItem(STORAGE_AUTH_KEY);
+  try {
+    localStorage.removeItem(STORAGE_AUTH_KEY);
+    sessionStorage.removeItem(STORAGE_AUTH_KEY);
+  } catch {
+    // ignore
+  }
 }

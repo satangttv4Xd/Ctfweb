@@ -163,7 +163,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                   outline: 'none',
                   boxSizing: 'border-box',
                   WebkitTextSecurity: showToken ? 'none' : 'disc'
-                }}
+                } as React.CSSProperties}
                 disabled={isSuccess}
               />
 
