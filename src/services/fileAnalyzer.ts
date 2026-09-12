@@ -106,16 +106,27 @@ export function extractPrintableStrings(bytes: Uint8Array, minLen = 4, maxString
 }
 
 /**
- * Scan strings for common CTF flag patterns
+ * Scan strings for common CTF flag patterns (Strict Printable ASCII only)
  */
 export function findFlagCandidates(strings: string[]): string[] {
-  const flagRegex = /(?:flag|ctf|picoctf|elec|thm|htb|sec)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-z0-9_-]+\{[^\r\n}]{3,100}\}/gi;
+  // Strict Printable ASCII Flag Regex: Prefix + { Printable ASCII only }
+  const flagRegex = /(?:flag|ctf|picoctf|elec|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}/gi;
   const candidates = new Set<string>();
 
   for (const s of strings) {
+    // Exclude strings containing non-ASCII / garbled control characters
+    if (/[\u0000-\u001F\u007F-\uFFFF]/.test(s) && !/(?:flag|ctf|elec|picoctf)/i.test(s)) {
+      continue;
+    }
+
     const matches = s.match(flagRegex);
     if (matches) {
-      matches.forEach(m => candidates.add(m));
+      matches.forEach(m => {
+        // Ensure no garbled extended ASCII characters exist inside the flag candidate
+        if (!/[\u0080-\uFFFF]/.test(m)) {
+          candidates.add(m);
+        }
+      });
     }
   }
 
