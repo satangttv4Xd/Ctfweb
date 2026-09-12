@@ -102,7 +102,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
           {error && (
             <div style={{
@@ -149,7 +149,14 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
               </div>
               
               <input
-                type={showToken ? 'text' : 'password'}
+                type="text"
+                name="static_access_token_no_autofill"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                data-1p-ignore="true"
+                data-lpignore="true"
                 value={tokenInput}
                 onChange={(e) => {
                   setTokenInput(e.target.value);
@@ -166,7 +173,8 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                   fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
                   fontSize: '0.8125rem',
                   outline: 'none',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  WebkitTextSecurity: showToken ? 'none' : 'disc'
                 }}
                 disabled={isSuccess}
               />
