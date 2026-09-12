@@ -235,13 +235,13 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          {/* Localhost Python Agent Bridge Indicator */}
+          {/* Localhost Python Agent Bridge Indicator & Download Button */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
-              padding: '0.45rem 0.75rem',
+              gap: '0.5rem',
+              padding: '0.35rem 0.65rem',
               borderRadius: '0.5rem',
               fontSize: '0.75rem',
               fontWeight: 600,
@@ -249,13 +249,130 @@ export const Header: React.FC<HeaderProps> = ({
               border: '1px solid rgba(16, 185, 129, 0.35)',
               color: '#34d399'
             }}
-            title="เชื่อมต่อระบบ CTF Swarm Local Agent (npm run agent) เพื่อรัน Python Engine บนเครื่องคุณ"
+            title="แอปตัวกลางรัน Python บนเครื่องคุณ: ดาวน์โหลดไฟล์สคริปต์แอปไปรันที่เครื่องเพื่อเชื่อมต่อกับเว็บ Vercel"
           >
             <Terminal size={14} color="#34d399" />
             <span>Local Python Agent</span>
-            <span style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', borderRadius: '4px', backgroundColor: '#10b981', color: '#020617', fontWeight: 700 }}>
-              npm run agent
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const scriptContent = `import http from 'http';
+import { spawn } from 'child_process';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+
+const PORT = 7788;
+const PYTHON_STEGO_SOLVER_CODE = \`import os, sys, re
+from PIL import Image
+
+def find_flag_in_image(image_path):
+    print(f"\\\\n==========================================")
+    print(f" [*] CTF SWARM LOCAL DESKTOP AGENT ENGINE")
+    print(f" File: {image_path}")
+    print(f"==========================================\\\\n")
+
+    if not os.path.exists(image_path):
+        return
+
+    found_flags = set()
+    flag_regex = r'(flag\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ctf\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ELEC\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\\\-]{3,80}\\})'
+
+    with open(image_path, 'rb') as f: data = f.read()
+    text = data.decode('latin-1', errors='ignore')
+    for m in re.findall(flag_regex, text, re.IGNORECASE):
+        if len(m) < 80 and all(32 <= ord(c) <= 126 for c in m):
+            found_flags.add(m)
+            print(f"  [+] String Match: {m}")
+
+    try:
+        img = Image.open(image_path)
+        if img.mode in ('RGB', 'RGBA'):
+            pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
+            for channel_idx, channel_name in enumerate(['Red', 'Green', 'Blue']):
+                bits = [str(p[channel_idx] & 1) for p in (pixels if isinstance(pixels[0], (tuple, list)) else [pixels[i:i+3] for i in range(0, len(pixels), 3)])]
+                bit_str = ''.join(bits)
+                byte_arr = bytearray()
+                for i in range(0, len(bit_str), 8):
+                    byte_arr.append(int(bit_str[i:i+8], 2))
+                for m in re.findall(flag_regex, byte_arr.decode('latin-1', errors='ignore'), re.IGNORECASE):
+                    if len(m) < 80 and all(32 <= ord(c) <= 126 for c in m):
+                        found_flags.add(m)
+                        print(f"  [+] LSB {channel_name} Channel Flag: {m}")
+    except Exception as e: pass
+
+    if found_flags:
+        print(" [!] DISCOVERED FLAGS:")
+        for f in found_flags: print(f"  --> {f}")
+
+if __name__ == '__main__':
+    find_flag_in_image(sys.argv[1] if len(sys.argv) > 1 else '')
+\`;
+
+const tempScriptPath = path.join(os.tmpdir(), 'ctf_swarm_steg_solver.py');
+fs.writeFileSync(tempScriptPath, PYTHON_STEGO_SOLVER_CODE);
+
+http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.writeHead(204).end();
+  if (req.url === '/health') return res.writeHead(200, {'Content-Type':'application/json'}).end(JSON.stringify({status:'ok'}));
+
+  if (req.url === '/api/analyze-stego' && req.method === 'POST') {
+    let body = [];
+    req.on('data', c => body.push(c));
+    req.on('end', () => {
+      try {
+        const payload = JSON.parse(Buffer.concat(body).toString());
+        const tempPath = path.join(os.tmpdir(), \`stego_\${Date.now()}_\${payload.fileName || 'file.png'}\`);
+        fs.writeFileSync(tempPath, Buffer.from(payload.fileBase64.replace(/^data:[^;]+;base64,/, ''), 'base64'));
+
+        const proc = spawn('python', [tempScriptPath, tempPath]);
+        let stdout = '';
+        proc.stdout.on('data', d => stdout += d.toString());
+        proc.on('close', () => {
+          try { fs.unlinkSync(tempPath); } catch {}
+          const matches = stdout.match(/(?:flag|ctf|elec|picoctf)[a-z0-9_-]*\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}/gi) || [];
+          res.writeHead(200, {'Content-Type':'application/json'}).end(JSON.stringify({
+            success: true, stdout, flags: Array.from(new Set(matches))
+          }));
+        });
+      } catch (e) { res.writeHead(500).end(JSON.stringify({error: e.message})); }
+    });
+  }
+}).listen(${238 > 0 ? 7788 : 7788}, () => {
+  console.log('\\n==================================================');
+  console.log(' 🤖 CTF SWARM DESKTOP AGENT RUNNING (http://localhost:7788)');
+  console.log(' Open https://ctfweb.vercel.app/ -> Auto routed to your PC Python!');
+  console.log('==================================================\\n');
+});
+`;
+                const blob = new Blob([scriptContent], { type: 'application/javascript' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ctf-swarm-agent.js';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              style={{
+                fontSize: '0.65rem',
+                padding: '0.15rem 0.45rem',
+                borderRadius: '4px',
+                backgroundColor: '#10b981',
+                color: '#020617',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.2rem'
+              }}
+              title="ดาวน์โหลดแอปตัวกลาง ctf-swarm-agent.js เพื่อนำไปรันบนเครื่องคุณ"
+            >
+              <span>ดาวน์โหลดแอปตัวกลาง (.js)</span>
+            </button>
           </div>
 
           {/* Test Connection & Auto-Find Model Button */}
