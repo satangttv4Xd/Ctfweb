@@ -615,7 +615,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
     }
   }
 
-  // If image, read as Data URL for Base64 multimodal AI support
+  // If image, read as Data URL & perform client-side Canvas LSB Bit-plane Analysis
   let imageBase64: string | undefined;
   if (category === 'image') {
     try {
@@ -625,8 +625,53 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+
+      if (imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
+        const img = new Image();
+        img.src = imageBase64;
+        await new Promise((res) => { img.onload = res; img.onerror = res; });
+
+        if (img.width > 0 && img.height > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(img.width, 640);
+          canvas.height = Math.min(img.height, 640);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imgData.data;
+
+            // Extract LSB bits from Red, Green, Blue channels
+            const channels = [0, 1, 2]; // R, G, B
+            for (const ch of channels) {
+              let bitString = '';
+              let byteVal = 0;
+              let bitCount = 0;
+              const extractedBytes: number[] = [];
+
+              for (let i = ch; i < pixels.length && extractedBytes.length < 2048; i += 4) {
+                const lsb = pixels[i] & 1;
+                byteVal = (byteVal << 1) | lsb;
+                bitCount++;
+                if (bitCount === 8) {
+                  extractedBytes.push(byteVal);
+                  byteVal = 0;
+                  bitCount = 0;
+                }
+              }
+
+              const decodedText = new Uint8Array(extractedBytes);
+              const lsbStrings = extractPrintableStrings(decodedText, 4, 30);
+              const lsbFlags = findFlagCandidates(lsbStrings);
+              if (lsbFlags.length > 0) {
+                lsbFlags.forEach(f => flagCandidates.push(f));
+              }
+            }
+          }
+        }
+      }
     } catch {
-      // ignore
+      // ignore LSB canvas extraction error
     }
   }
 
