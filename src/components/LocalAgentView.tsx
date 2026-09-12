@@ -379,7 +379,7 @@ with socketserver.TCPServer(("", PORT), H) as httpd:
               width: '100%',
               padding: '0.75rem',
               backgroundColor: '#10b981',
-              color: '#020617',
+              color: '#ffffff',
               border: 'none',
               borderRadius: '0.5rem',
               fontWeight: 700,
@@ -392,7 +392,7 @@ with socketserver.TCPServer(("", PORT), H) as httpd:
               boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
             }}
           >
-            <Download size={18} />
+            <Download size={18} color="#ffffff" />
             <span>โหลดแอป Windows Executable (.cmd)</span>
           </button>
         </div>
