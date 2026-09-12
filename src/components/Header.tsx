@@ -253,106 +253,31 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Terminal size={14} color="#34d399" />
             <span>Local Python Agent</span>
-            <button
-              type="button"
-              onClick={() => {
-                const scriptContent = `import http from 'http';
-import { spawn } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
+                const cmdContent = `@echo off
+:: ============================================================
+:: 🤖 CTF SWARM STANDALONE WINDOWS AGENT LAUNCHER
+:: ============================================================
+title CTF Swarm Local Agent Engine (Windows Executable)
+color 0A
+cls
+echo.
+echo  ============================================================
+echo    🤖 CTF SWARM DESKTOP AGENT ENGINE (RUNNING ON YOUR PC)
+echo  ============================================================
+echo    Status : Ready & Listening on http://localhost:7788
+echo    Connect: Open https://ctfweb.vercel.app/ in your browser
+echo  ============================================================
+echo.
 
-const PORT = 7788;
-const PYTHON_STEGO_SOLVER_CODE = \`import os, sys, re
-from PIL import Image
+node ctf-swarm-agent.js 2>nul || python -c "import http.server, socketserver, json, re, tempfile, os, base64; PORT = 7788; class H(http.server.BaseHTTPRequestHandler):\\n def do_OPTIONS(s): s.send_response(204); s.send_header('Access-Control-Allow-Origin', '*'); s.send_header('Access-Control-Allow-Methods', '*'); s.send_header('Access-Control-Allow-Headers', '*'); s.end_headers()\\n def do_GET(s): s.send_response(200); s.send_header('Access-Control-Allow-Origin', '*'); s.send_header('Content-Type', 'application/json'); s.end_headers(); s.wfile.write(b'{\\\"status\\\":\\\"ok\\\"}')\\n def do_POST(s):\\n  if s.path=='/api/analyze-stego':\\n   body=json.loads(s.rfile.read(int(s.headers.get('Content-Length',0))).decode('utf-8')); buf=base64.b64decode(body.get('fileBase64','').split(',')[-1]); found=set(); reg=r'(flag\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ctf\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ELEC\\\\{[A-Za-z0-9_\\\\-]{3,80}\\})'; text=buf.decode('latin-1',errors='ignore')\\n   for m in re.findall(reg,text,re.IGNORECASE): found.add(m)\\n   try:\\n    from PIL import Image; temp=tempfile.NamedTemporaryFile(delete=False,suffix='.png'); temp.write(buf); temp.close(); img=Image.open(temp.name)\\n    if img.mode in ('RGB','RGBA'):\\n     px=list(img.get_flattened_data() if hasattr(img,'get_flattened_data') else img.getdata())\\n     for c in range(3):\\n      bits=[str(p[c]&1) for p in (px if isinstance(px[0],(tuple,list)) else [px[i:i+3] for i in range(0,len(px),3)])]\\n      byte_arr=bytearray([int(''.join(bits[i:i+8]),2) for i in range(0,len(bits),8)])\\n      for m in re.findall(reg,byte_arr.decode('latin-1',errors='ignore'),re.IGNORECASE): found.add(m)\\n    os.unlink(temp.name)\\n   except Exception: pass\\n   s.send_response(200); s.send_header('Access-Control-Allow-Origin','*'); s.send_header('Content-Type','application/json'); s.end_headers(); s.wfile.write(json.dumps({'success':True,'stdout':'[Windows Executable Agent] Analyzed via PC Python Engine','flags':list(found)}).encode())\\nsocketserver.TCPServer(('',PORT),H).serve_forever()"
 
-def find_flag_in_image(image_path):
-    print(f"\\\\n==========================================")
-    print(f" [*] CTF SWARM LOCAL DESKTOP AGENT ENGINE")
-    print(f" File: {image_path}")
-    print(f"==========================================\\\\n")
-
-    if not os.path.exists(image_path):
-        return
-
-    found_flags = set()
-    flag_regex = r'(flag\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ctf\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|ELEC\\\\{[A-Za-z0-9_\\\\-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\\\-]{3,80}\\})'
-
-    with open(image_path, 'rb') as f: data = f.read()
-    text = data.decode('latin-1', errors='ignore')
-    for m in re.findall(flag_regex, text, re.IGNORECASE):
-        if len(m) < 80 and all(32 <= ord(c) <= 126 for c in m):
-            found_flags.add(m)
-            print(f"  [+] String Match: {m}")
-
-    try:
-        img = Image.open(image_path)
-        if img.mode in ('RGB', 'RGBA'):
-            pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
-            for channel_idx, channel_name in enumerate(['Red', 'Green', 'Blue']):
-                bits = [str(p[channel_idx] & 1) for p in (pixels if isinstance(pixels[0], (tuple, list)) else [pixels[i:i+3] for i in range(0, len(pixels), 3)])]
-                bit_str = ''.join(bits)
-                byte_arr = bytearray()
-                for i in range(0, len(bit_str), 8):
-                    byte_arr.append(int(bit_str[i:i+8], 2))
-                for m in re.findall(flag_regex, byte_arr.decode('latin-1', errors='ignore'), re.IGNORECASE):
-                    if len(m) < 80 and all(32 <= ord(c) <= 126 for c in m):
-                        found_flags.add(m)
-                        print(f"  [+] LSB {channel_name} Channel Flag: {m}")
-    except Exception as e: pass
-
-    if found_flags:
-        print(" [!] DISCOVERED FLAGS:")
-        for f in found_flags: print(f"  --> {f}")
-
-if __name__ == '__main__':
-    find_flag_in_image(sys.argv[1] if len(sys.argv) > 1 else '')
-\`;
-
-const tempScriptPath = path.join(os.tmpdir(), 'ctf_swarm_steg_solver.py');
-fs.writeFileSync(tempScriptPath, PYTHON_STEGO_SOLVER_CODE);
-
-http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.writeHead(204).end();
-  if (req.url === '/health') return res.writeHead(200, {'Content-Type':'application/json'}).end(JSON.stringify({status:'ok'}));
-
-  if (req.url === '/api/analyze-stego' && req.method === 'POST') {
-    let body = [];
-    req.on('data', c => body.push(c));
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(Buffer.concat(body).toString());
-        const tempPath = path.join(os.tmpdir(), \`stego_\${Date.now()}_\${payload.fileName || 'file.png'}\`);
-        fs.writeFileSync(tempPath, Buffer.from(payload.fileBase64.replace(/^data:[^;]+;base64,/, ''), 'base64'));
-
-        const proc = spawn('python', [tempScriptPath, tempPath]);
-        let stdout = '';
-        proc.stdout.on('data', d => stdout += d.toString());
-        proc.on('close', () => {
-          try { fs.unlinkSync(tempPath); } catch {}
-          const matches = stdout.match(/(?:flag|ctf|elec|picoctf)[a-z0-9_-]*\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}/gi) || [];
-          res.writeHead(200, {'Content-Type':'application/json'}).end(JSON.stringify({
-            success: true, stdout, flags: Array.from(new Set(matches))
-          }));
-        });
-      } catch (e) { res.writeHead(500).end(JSON.stringify({error: e.message})); }
-    });
-  }
-}).listen(${238 > 0 ? 7788 : 7788}, () => {
-  console.log('\\n==================================================');
-  console.log(' 🤖 CTF SWARM DESKTOP AGENT RUNNING (http://localhost:7788)');
-  console.log(' Open https://ctfweb.vercel.app/ -> Auto routed to your PC Python!');
-  console.log('==================================================\\n');
-});
+pause
 `;
-                const blob = new Blob([scriptContent], { type: 'application/javascript' });
+                const blob = new Blob([cmdContent], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ctf-swarm-agent.js';
+                a.download = 'CTF-Swarm-Agent-Launcher.cmd';
                 a.click();
                 URL.revokeObjectURL(url);
               }}
@@ -369,9 +294,9 @@ http.createServer((req, res) => {
                 alignItems: 'center',
                 gap: '0.2rem'
               }}
-              title="ดาวน์โหลดแอปตัวกลาง ctf-swarm-agent.js เพื่อนำไปรันบนเครื่องคุณ"
+              title="ดาวน์โหลดแอปตัวกลาง Windows Executable Launcher (CTF-Swarm-Agent-Launcher.cmd) เพื่อดับเบิ้ลคลิกรันได้ทันที!"
             >
-              <span>ดาวน์โหลดแอปตัวกลาง (.js)</span>
+              <span>โหลดแอป Windows Executable (.cmd)</span>
             </button>
           </div>
 
