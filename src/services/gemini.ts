@@ -79,24 +79,42 @@ export async function callGeminiApi(options: GeminiCallOptions): Promise<string>
     };
   }
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestBody)
-  });
+  let response: Response | undefined;
+  let retries = 0;
+  const maxRetries = 3;
 
-  if (!response.ok) {
-    let errorMsg = `Gemini API Error (${response.status} ${response.statusText})`;
+  while (retries <= maxRetries) {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      signal,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (response.status === 429 && retries < maxRetries) {
+      retries++;
+      // Exponential backoff delay (1.5s, 3s, 6s) plus jitter
+      const backoffMs = Math.pow(2, retries) * 1000 + Math.floor(Math.random() * 500);
+      await new Promise(r => setTimeout(r, backoffMs));
+      continue;
+    }
+    break;
+  }
+
+  if (!response || !response.ok) {
+    let errorMsg = `Gemini API Error (${response?.status || 500} ${response?.statusText || 'Error'})`;
     try {
-      const errData = await response.json();
+      const errData = await response?.json();
       if (errData?.error?.message) {
         errorMsg = `Gemini: ${errData.error.message}`;
       }
     } catch {
       // ignore json parse error
+    }
+    if (response?.status === 429) {
+      errorMsg = 'Gemini API Key ติดโควต้าจำกัดคำขอต่อนาที (HTTP 429 Rate Limit Exceeded) - ระบบแนะนำให้กดรันอีกครั้ง หรือสลับไปใช้ Gemini Flash Lite / OpenRouter';
     }
     throw new Error(errorMsg);
   }

@@ -262,10 +262,15 @@ export function App() {
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    // Phase 1: Run all selected specialist agents concurrently
-    const specialistPromises = selectedAgentIds.map(async (agentId) => {
+    // Phase 1: Run all selected specialist agents concurrently with slight staggered delays to prevent API Rate Limit (429)
+    const specialistPromises = selectedAgentIds.map(async (agentId, index) => {
       const agentConfig = agents.find(a => a.id === agentId);
       if (!agentConfig) return;
+
+      // Stagger request start by 350ms per agent when on free Gemini provider
+      if (settings.activeProvider === 'gemini' && !settings.mockMode && index > 0) {
+        await new Promise(r => setTimeout(r, index * 350));
+      }
 
       const startTime = Date.now();
       try {
