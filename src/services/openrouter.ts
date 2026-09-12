@@ -128,47 +128,13 @@ export async function simulateAgentResponse(agentId: AgentId, challengeInput: st
 
   // Flag Assembler synthesis simulation
   if (agentId === 'flagassembler') {
-    if (isNoFlag) {
-      return `### ℹ️ FLAG REPORT — ไม่มีข้อมูลของ Flag ในไฟล์นี้
-
-**Challenge / File Type**: General File / Non-flag Artifact (ไฟล์ทั่วไป / ไม่พบ Flag โดยตรง)
-
-**Primary Flag**:
-\`\`\`
-[ไม่มีข้อมูลของ Flag ในไฟล์นี้]
-\`\`\`
-**Confidence**: 10%
-
-**Alternative Candidates**:
-- ไม่พบสตริงก์หรือข้อมูลที่เข้าข่าย Flag มาตรฐานในไฟล์
-
-**Solution Summary & ข้อมูลโครงสร้างภายในไฟล์**:
-จากการตรวจสอบเชิงลึกและการวิเคราะห์โครงสร้างไฟล์ร่วมกันของ Specialist Agents:
-1. **สถานะ Flag**: ไม่พบสตริงก์ Flag มาตรฐาน (เช่น \`flag{...}\`, \`ctf{...}\`) ในข้อมูลดิบของไฟล์
-2. **ประเภทไฟล์**: เป็นไฟล์ข้อมูลทั่วไป หรือเป็นแอปพลิเคชัน/ไบนารีที่ไม่มีการฮาร์ดโค้ด Flag ไว้ในสตริงก์
-3. **ข้อมูลโครงสร้างภายใน**:
-   - ระบบได้สกัดข้อมูล Header, Magic Bytes, โครงสร้างไฟล์ย่อย, สตริงก์ที่ตรวจพบ และ Hex Dump ออกมาอย่างครบถ้วน
-   - สามารถตรวจสอบเนื้อหาโค้ด, ลิสต์ไฟล์ และสัญลักษณ์ฟังก์ชันได้จากแท็บ "📄 ข้อมูลและเนื้อหาภายในไฟล์"
-
-**Agent Contributions**:
-| Agent | Finding | Useful? |
-|-------|---------|---------|
-| ForensicX | ตรวจสอบ Header, Magic Bytes และ SHA-256 | ✅ |
-| RevEng | สกัดสัญลักษณ์และโครงสร้างฟังก์ชันการทำงาน | ✅ |
-| CryptoBreaker | สแกนหาค่าคีย์และการเข้ารหัสที่ซ่อนอยู่ | ⚠️ ไม่พบสตริงก์ Flag |
-
-**Recommendations**:
-- ตรวจสอบโครงสร้างและสตริงก์ภายในไฟล์ในแท็บ "📄 ข้อมูลและเนื้อหาภายในไฟล์"
-- หากเป็นโจทย์แนว Reverse Engineering / Mobile ให้วิเคราะห์ Logic การทำงานใน classes.dex หรือรันโปรแกรมเพื่อตรวจสอบ Output`;
-    }
-
-    let detectedFlag = 'flag{swarm_intelligence_ctf_solver_2026}';
-    let challengeType = 'Multi-Vector CTF Challenge';
+    let detectedFlag: string | null = null;
+    let challengeType = 'General File / Image Analysis';
 
     if (lowerInput.includes('sql') || lowerInput.includes('jwt')) {
       detectedFlag = 'flag{sql_un10n_and_jwt_n0n3_4lg0r1thm_byp4ss}';
       challengeType = 'Web Exploitation & Auth Bypass';
-    } else if (lowerInput.includes('layer cake') || lowerInput.includes('base64')) {
+    } else if (lowerInput.includes('layer cake') || (lowerInput.includes('base64') && lowerInput.includes('crypto'))) {
       detectedFlag = 'flag{cr7pt0_l4y3rs_p33l3d_succ3ssfully_2026}';
       challengeType = 'Multi-layer Cryptography';
     } else if (lowerInput.includes('mona') || lowerInput.includes('lsb') || lowerInput.includes('red plane')) {
@@ -183,6 +149,38 @@ export async function simulateAgentResponse(agentId: AgentId, challengeInput: st
     } else if (lowerInput.includes('brainfuck') || lowerInput.includes('+++++')) {
       detectedFlag = 'flag{bf_ok}';
       challengeType = 'Esoteric Language';
+    }
+
+    if (!detectedFlag || isNoFlag) {
+      return `### ℹ️ FLAG REPORT — ไม่พบข้อมูล Flag ในรูปภาพ/ไฟล์นี้
+
+**Challenge / File Type**: General Image / Non-flag File (รูปภาพทั่วไป / ไม่พบ Flag ซ่อนอยู่)
+
+**Primary Flag**:
+\`\`\`
+[ไม่พบข้อมูล Flag ในรูปภาพ/ไฟล์นี้]
+\`\`\`
+**Confidence**: 0%
+
+**Alternative Candidates**:
+- ไม่พบสตริงก์หรือข้อมูลที่เข้าข่าย Flag (เช่น flag{...}, ctf{...}) ในรูปภาพ/ไฟล์นี้
+
+**Solution Summary & ข้อมูลผลการตรวจสอบ**:
+จากการสแกนและตรวจสอบโครงสร้างไฟล์ดิบ, Bit planes, EXIF Metadata และ LSB Data Stream:
+1. **สถานะ Flag**: ไม่พบสตริงก์ Flag ซ่อนอยู่ในภาพหรือไฟล์นี้
+2. **การวิเคราะห์รูปภาพ/ไฟล์**: เป็นรูปภาพหรือไฟล์ทั่วไปที่ไม่มี Payload หรือข้อความความลับซ่อนอยู่ (Clean File)
+3. **การตรวจสอบเพิ่มเติม**: สแกน Bit planes 0-7, Red/Green/Blue planes และ Strings ไม่พบข้อมูลผิดปกติ
+
+**Agent Contributions**:
+| Agent | Finding | Useful? |
+|-------|---------|---------|
+| StegHunter | ตรวจสอบ Bit plane, LSB และ EXIF Metadata | ⚠️ ไม่พบ Flag ซ่อนอยู่ |
+| ForensicX | ตรวจสอบ Header, Magic Bytes และ SHA-256 | ✅ |
+| CryptoBreaker | สแกนหาค่าคีย์และการเข้ารหัสที่ซ่อนอยู่ | ⚠️ ไม่พบ Flag |
+
+**Recommendations**:
+- ตรวจสอบว่ารูปภาพที่แนบเป็นรูปภาพโจทย์ CTF ที่ถูกต้องหรือไม่
+- หากเป็นรูปภาพโจทย์ที่มีรหัสผ่านซ่อน (Steghide) ให้ระบุคำใบ้หรือรหัสผ่านเพิ่มเติมในกล่องรายละเอียดโจทย์`;
     }
 
     return `### 🏴 FLAG REPORT

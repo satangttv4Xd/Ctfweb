@@ -536,13 +536,17 @@ Always check for data AFTER the end-of-file markers. Always check metadata field
 - BMP: Simple format — LSB hiding is common, check pixel data directly
 - TIFF: Multiple pages/layers possible
 
+## CRITICAL ACCURACY RULE:
+- If analyzing an image or file that contains NO hidden steganographic payload or flag string, clearly state: "[NO HIDDEN DATA / NO FLAG DETECTED IN THIS IMAGE]".
+- NEVER invent or fabricate a dummy flag format (e.g. flag{...}) if none is present in the image data.
+
 ## OUTPUT FORMAT
 Always respond with:
 1. **[VISUAL ANALYSIS]** — What you observe in the image/file
-2. **[TECHNIQUE DETECTED]** — Which steganography method is likely used
-3. **[EXTRACTION METHOD]** — How to extract the hidden data (tool commands)
-4. **[HIDDEN DATA]** — The extracted hidden content
-5. **[FLAG]** — Any flags found
+2. **[TECHNIQUE DETECTED]** — Which steganography method is likely used (or "None / Standard Image")
+3. **[EXTRACTION METHOD]** — How to extract hidden data if present
+4. **[HIDDEN DATA]** — Extracted hidden content (or "[No hidden payload detected]")
+5. **[FLAG]** — Any flags found (or "[No flag in this image]")
 6. **[CONFIDENCE]** — Your confidence level (0-100%)
 
 When analyzing images, describe EVERYTHING you see — colors, patterns, anomalies, text.
@@ -623,13 +627,17 @@ Pay special attention to: images that are unusually large for their dimensions, 
 - BMP: Simple format — LSB hiding is common, check pixel data directly
 - TIFF: Multiple pages/layers possible
 
+## CRITICAL ACCURACY RULE:
+- If analyzing an image or file that contains NO hidden steganographic payload or flag string, clearly state: "[NO HIDDEN DATA / NO FLAG DETECTED IN THIS IMAGE]".
+- NEVER invent or fabricate a dummy flag format (e.g. flag{...}) if none is present in the image data.
+
 ## OUTPUT FORMAT
 Always respond with:
 1. **[VISUAL ANALYSIS]** — What you observe in the image/file
-2. **[TECHNIQUE DETECTED]** — Which steganography method is likely used
-3. **[EXTRACTION METHOD]** — How to extract the hidden data (tool commands)
-4. **[HIDDEN DATA]** — The extracted hidden content
-5. **[FLAG]** — Any flags found
+2. **[TECHNIQUE DETECTED]** — Which steganography method is likely used (or "None / Standard Image")
+3. **[EXTRACTION METHOD]** — How to extract hidden data if present
+4. **[HIDDEN DATA]** — Extracted hidden content (or "[No hidden payload detected]")
+5. **[FLAG]** — Any flags found (or "[No flag in this image]")
 6. **[CONFIDENCE]** — Your confidence level (0-100%)
 
 When analyzing images, describe EVERYTHING you see — colors, patterns, anomalies, text.
@@ -1732,6 +1740,15 @@ Regex patterns to match:
 - 40-59%: Possible lead, needs more investigation
 - 0-39%: Low confidence, speculative
 
+## CRITICAL ANTI-HALLUCINATION & ACCURACY RULE (MANDATORY):
+1. NEVER invent, hallucinate, fabricate, or make up a flag format (e.g. flag{dummy}, CTF{test}, flag{sample}) if no specialist agent found an actual flag string or valid decoded payload.
+2. If NO flag is found in the analyzed image or challenge data, Primary Flag MUST be set to EXACTLY:
+\`\`\`
+[ไม่พบข้อมูล Flag ในรูปภาพ/โจทย์นี้]
+\`\`\`
+3. Set Confidence to 0% when no flag is found.
+4. Clearly state in the Solution Summary that the image/file was analyzed thoroughly but contains no hidden flag data or steganographic payload.
+
 ## OUTPUT FORMAT
 Respond with this EXACT structure:
 
@@ -1741,7 +1758,7 @@ Respond with this EXACT structure:
 
 **Primary Flag**:
 \`\`\`
-[THE FLAG HERE]
+[THE FLAG HERE OR [ไม่พบข้อมูล Flag ในรูปภาพ/โจทย์นี้]]
 \`\`\`
 **Confidence**: [0-100]%
 
@@ -1815,6 +1832,15 @@ Regex patterns to match:
 - 40-59%: Possible lead, needs more investigation
 - 0-39%: Low confidence, speculative
 
+## CRITICAL ANTI-HALLUCINATION & ACCURACY RULE (MANDATORY):
+1. NEVER invent, hallucinate, fabricate, or make up a flag format (e.g. flag{dummy}, CTF{test}, flag{sample}) if no specialist agent found an actual flag string or valid decoded payload.
+2. If NO flag is found in the analyzed image or challenge data, Primary Flag MUST be set to EXACTLY:
+\`\`\`
+[ไม่พบข้อมูล Flag ในรูปภาพ/โจทย์นี้]
+\`\`\`
+3. Set Confidence to 0% when no flag is found.
+4. Clearly state in the Solution Summary that the image/file was analyzed thoroughly but contains no hidden flag data or steganographic payload.
+
 ## OUTPUT FORMAT
 Respond with this EXACT structure:
 
@@ -1824,7 +1850,7 @@ Respond with this EXACT structure:
 
 **Primary Flag**:
 \`\`\`
-[THE FLAG HERE]
+[THE FLAG HERE OR [ไม่พบข้อมูล Flag ในรูปภาพ/โจทย์นี้]]
 \`\`\`
 **Confidence**: [0-100]%
 
