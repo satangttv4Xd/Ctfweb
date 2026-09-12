@@ -3,8 +3,8 @@ import { Shield, Terminal, Settings, Database, Play, CheckCircle2, AlertCircle, 
 import type { OpenRouterSettings } from '../types';
 
 interface HeaderProps {
-  currentTab: 'swarm' | 'solo' | 'prompts' | 'history';
-  onTabChange: (tab: 'swarm' | 'solo' | 'prompts' | 'history') => void;
+  currentTab: 'swarm' | 'solo' | 'prompts' | 'history' | 'agent';
+  onTabChange: (tab: 'swarm' | 'solo' | 'prompts' | 'history' | 'agent') => void;
   onOpenApiKeyModal: () => void;
   onOpenPresetsModal: () => void;
   onOpenDiscoveryModal: () => void;
@@ -23,6 +23,21 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMockMode,
   isAnalyzing
 }) => {
+  const [agentConnected, setAgentConnected] = React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch('http://localhost:7788/health', { cache: 'no-store' });
+        setAgentConnected(res.ok);
+      } catch {
+        setAgentConnected(false);
+      }
+    };
+    check();
+    const interval = setInterval(check, 3000);
+    return () => clearInterval(interval);
+  }, []);
   return (
     <header style={{
       borderBottom: '1px solid var(--border-subtle)',
@@ -156,6 +171,35 @@ export const Header: React.FC<HeaderProps> = ({
             <Settings size={15} />
             <span>จัดการ Agent & Prompts</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => onTabChange('agent')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.5rem 0.875rem',
+              borderRadius: '0.375rem',
+              fontSize: '0.8125rem',
+              fontWeight: 600,
+              border: 'none',
+              background: currentTab === 'agent' ? '#10b981' : 'transparent',
+              color: currentTab === 'agent' ? '#ffffff' : (agentConnected ? '#34d399' : '#94a3b8'),
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Terminal size={15} />
+            <span>Local Python Agent</span>
+            <span style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              backgroundColor: agentConnected ? '#34d399' : '#ef4444',
+              display: 'inline-block'
+            }} />
+          </button>
         </nav>
 
         {/* Right Action Controls */}
@@ -237,6 +281,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Localhost Python Agent Bridge Indicator & Download Button */}
           <div
+            onClick={() => onTabChange('agent')}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -245,94 +290,26 @@ export const Header: React.FC<HeaderProps> = ({
               borderRadius: '0.5rem',
               fontSize: '0.75rem',
               fontWeight: 600,
-              backgroundColor: 'rgba(16, 185, 129, 0.12)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
-              color: '#34d399'
+              backgroundColor: agentConnected ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              border: agentConnected ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
+              color: agentConnected ? '#34d399' : '#f87171',
+              cursor: 'pointer'
             }}
-            title="แอปตัวกลางรัน Python บนเครื่องคุณ: ดาวน์โหลดไฟล์สคริปต์แอปไปรันที่เครื่องเพื่อเชื่อมต่อกับเว็บ Vercel"
+            title="คลิกเพื่อไปที่หน้าจัดการ Local Python Agent"
           >
-            <Terminal size={14} color="#34d399" />
-            <span>Local Python Agent</span>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: agentConnected ? '#34d399' : '#ef4444'
+            }} />
+            <Terminal size={14} color={agentConnected ? '#34d399' : '#f87171'} />
+            <span>Local Agent ({agentConnected ? 'Connected' : 'Offline'})</span>
             <button
               type="button"
-              onClick={() => {
-                const cmdLines = [
-                  '@echo off',
-                  ':: ============================================================',
-                  ':: 🤖 CTF SWARM STANDALONE WINDOWS AGENT LAUNCHER',
-                  ':: ============================================================',
-                  'title CTF Swarm Local Agent Engine (Windows Executable)',
-                  'color 0A',
-                  'cls',
-                  'echo.',
-                  'echo ============================================================',
-                  'echo   🤖 CTF SWARM DESKTOP AGENT ENGINE (RUNNING ON YOUR PC)',
-                  'echo ============================================================',
-                  'echo   Status : Ready ^& Listening on http://localhost:7788',
-                  'echo   Connect: Open https://ctfweb.vercel.app/ in your browser',
-                  'echo ============================================================',
-                  'echo.',
-                  ':: Create python runner script dynamically',
-                  'echo import http.server, socketserver, json, re, tempfile, os, base64 > ctf_agent_runner.py',
-                  'echo PORT = 7788 >> ctf_agent_runner.py',
-                  'echo class H(http.server.BaseHTTPRequestHandler): >> ctf_agent_runner.py',
-                  'echo     def do_OPTIONS(self): >> ctf_agent_runner.py',
-                  'echo         self.send_response(204) >> ctf_agent_runner.py',
-                  'echo         self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-                  'echo         self.send_header("Access-Control-Allow-Methods", "*") >> ctf_agent_runner.py',
-                  'echo         self.send_header("Access-Control-Allow-Headers", "*") >> ctf_agent_runner.py',
-                  'echo         self.end_headers() >> ctf_agent_runner.py',
-                  'echo     def do_GET(self): >> ctf_agent_runner.py',
-                  'echo         if self.path == "/health": >> ctf_agent_runner.py',
-                  'echo             self.send_response(200) >> ctf_agent_runner.py',
-                  'echo             self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-                  'echo             self.send_header("Content-Type", "application/json") >> ctf_agent_runner.py',
-                  'echo             self.end_headers() >> ctf_agent_runner.py',
-                  'echo             self.wfile.write(json.dumps({"status": "ok"}).encode()) >> ctf_agent_runner.py',
-                  'echo     def do_POST(self): >> ctf_agent_runner.py',
-                  'echo         if self.path == "/api/analyze-stego": >> ctf_agent_runner.py',
-                  'echo             length = int(self.headers.get("Content-Length", 0)) >> ctf_agent_runner.py',
-                  'echo             body = json.loads(self.rfile.read(length).decode("utf-8")) >> ctf_agent_runner.py',
-                  'echo             b64 = body.get("fileBase64", "").split(",")[-1] >> ctf_agent_runner.py',
-                  'echo             buf = base64.b64decode(b64) >> ctf_agent_runner.py',
-                  'echo             found = set() >> ctf_agent_runner.py',
-                  'echo             reg = r"(flag\\{[A-Za-z0-9_-]{3,80}\\}|ctf\\{[A-Za-z0-9_-]{3,80}\\}|ELEC\\{[A-Za-z0-9_-]{3,80}\\})" >> ctf_agent_runner.py',
-                  'echo             text = buf.decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
-                  'echo             for m in re.findall(reg, text, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-                  'echo             try: >> ctf_agent_runner.py',
-                  'echo                 from PIL import Image >> ctf_agent_runner.py',
-                  'echo                 temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png") >> ctf_agent_runner.py',
-                  'echo                 temp.write(buf) >> ctf_agent_runner.py',
-                  'echo                 temp.close() >> ctf_agent_runner.py',
-                  'echo                 img = Image.open(temp.name) >> ctf_agent_runner.py',
-                  'echo                 if img.mode in ("RGB", "RGBA"): >> ctf_agent_runner.py',
-                  'echo                     px = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata()) >> ctf_agent_runner.py',
-                  'echo                     for c in range(3): >> ctf_agent_runner.py',
-                  'echo                         bits = [str(p[c] ^& 1) for p in (px if isinstance(px[0], (tuple, list)) else [px[i:i+3] for i in range(0, len(px), 3)])] >> ctf_agent_runner.py',
-                  'echo                         byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits), 8)]) >> ctf_agent_runner.py',
-                  'echo                         for m in re.findall(reg, byte_arr.decode("latin-1", errors="ignore"), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-                  'echo                 os.unlink(temp.name) >> ctf_agent_runner.py',
-                  'echo             except Exception: pass >> ctf_agent_runner.py',
-                  'echo             self.send_response(200) >> ctf_agent_runner.py',
-                  'echo             self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-                  'echo             self.send_header("Content-Type", "application/json") >> ctf_agent_runner.py',
-                  'echo             self.end_headers() >> ctf_agent_runner.py',
-                  'echo             self.wfile.write(json.dumps({"success": True, "stdout": "[Windows Desktop Agent] Analyzed via PC Python Engine", "flags": list(found)}).encode()) >> ctf_agent_runner.py',
-                  'echo print("============================================================") >> ctf_agent_runner.py',
-                  'echo print("  🤖 CTF SWARM LOCAL AGENT RUNNING (http://localhost:7788)") >> ctf_agent_runner.py',
-                  'echo print("============================================================") >> ctf_agent_runner.py',
-                  'echo with socketserver.TCPServer(("", PORT), H) as httpd: httpd.serve_forever() >> ctf_agent_runner.py',
-                  'echo. ',
-                  'python ctf_agent_runner.py',
-                  'pause'
-                ];
-                const blob = new Blob([cmdLines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'CTF-Swarm-Agent-Launcher.cmd';
-                a.click();
-                URL.revokeObjectURL(url);
+              onClick={(e) => {
+                e.stopPropagation();
+                onTabChange('agent');
               }}
               style={{
                 fontSize: '0.65rem',
@@ -347,9 +324,9 @@ export const Header: React.FC<HeaderProps> = ({
                 alignItems: 'center',
                 gap: '0.2rem'
               }}
-              title="ดาวน์โหลดแอปตัวกลาง Windows Executable Launcher (CTF-Swarm-Agent-Launcher.cmd) เพื่อดับเบิ้ลคลิกรันได้ทันที!"
+              title="ดูรายละเอียด & ดาวน์โหลดแอปตัวกลาง Windows Executable (.cmd)"
             >
-              <span>โหลดแอป Windows Executable (.cmd)</span>
+              <span>ดาวน์โหลด / สถานะ</span>
             </button>
           </div>
 

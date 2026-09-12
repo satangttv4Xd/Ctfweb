@@ -9,6 +9,7 @@ import { SwarmDashboard } from './components/SwarmDashboard';
 import { AgentModal } from './components/AgentModal';
 import { SoloAgentView } from './components/SoloAgentView';
 import { PromptManager } from './components/PromptManager';
+import { LocalAgentView } from './components/LocalAgentView';
 import { ModelDiscoveryModal } from './components/ModelDiscoveryModal';
 import { executeAgent } from './services/ai';
 import { buildFilesContextPrompt } from './services/fileAnalyzer';
@@ -23,7 +24,7 @@ export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Navigation
-  const [currentTab, setCurrentTab] = useState<'swarm' | 'solo' | 'prompts' | 'history'>('swarm');
+  const [currentTab, setCurrentTab] = useState<'swarm' | 'solo' | 'prompts' | 'history' | 'agent'>('swarm');
 
   // OpenRouter Settings
   const [settings, setSettings] = useState<OpenRouterSettings>(() => {
@@ -516,6 +517,10 @@ export function App() {
             onResetAgentPrompt={handleResetAgentPrompt}
             onResetAllAgents={handleResetAllAgents}
           />
+        )}
+
+        {currentTab === 'agent' && (
+          <LocalAgentView />
         )}
       </main>
 
