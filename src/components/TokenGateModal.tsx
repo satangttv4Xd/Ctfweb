@@ -29,7 +29,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
         onSuccess();
       }, 500);
     } else {
-      setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Token หรือสร้าง Token ใหม่ด้วย npm run gen-token:satang');
+      setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Access Token อีกครั้ง');
     }
   };
 
