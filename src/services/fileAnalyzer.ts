@@ -655,10 +655,10 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         reader.readAsDataURL(file);
       });
 
-      // Call Python Stego Solver Backend Endpoint
+      // First try Local Machine Agent Bridge (http://localhost:7788) if user is running local Python Agent
       if (imageBase64) {
         try {
-          const res = await fetch('/api/analyze-stego', {
+          const localAgentRes = await fetch('http://localhost:7788/api/analyze-stego', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -667,8 +667,8 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             })
           });
 
-          if (res.ok) {
-            const data = await res.json();
+          if (localAgentRes.ok) {
+            const data = await localAgentRes.json();
             if (data.flags && Array.isArray(data.flags)) {
               data.flags.forEach((f: string) => flagCandidates.push(f));
             }
@@ -677,7 +677,29 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             }
           }
         } catch {
-          // fallback if backend endpoint is unavailable
+          // Fallback to relative endpoint if local agent is not running
+          try {
+            const res = await fetch('/api/analyze-stego', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileName: file.name,
+                fileBase64: imageBase64
+              })
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              if (data.flags && Array.isArray(data.flags)) {
+                data.flags.forEach((f: string) => flagCandidates.push(f));
+              }
+              if (data.stdout) {
+                details.pythonStdout = data.stdout;
+              }
+            }
+          } catch {
+            // ignore
+          }
         }
       }
 
