@@ -41,7 +41,7 @@ export function App() {
       apiKey: '',
       siteUrl: 'https://ctf-swarm.local',
       siteName: 'CTF Swarm AI',
-      mockMode: true // default to mock mode so user can test immediately without error!
+      mockMode: false
     };
   });
 
