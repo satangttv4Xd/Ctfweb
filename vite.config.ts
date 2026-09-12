@@ -14,6 +14,9 @@ export default defineConfig({
   server: {
     allowedHosts: [
       'nonreducible-estrella-overclinically.ngrok-free.dev'
-    ]
+    ],
+    watch: {
+      ignored: ['**/example/**', '**/*.apk', '**/*.pcap', '**/*.zip']
+    }
   }
 })

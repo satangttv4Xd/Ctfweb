@@ -327,9 +327,12 @@ export function parseZipDirectory(bytes: Uint8Array): {
 
   if (bytes.length < 30) return result;
 
-  // Check Local File Header magic: 'PK\x03\x04'
-  if (bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04) {
-    result.isZip = true;
+  // Check Local File Header magic 'PK\x03\x04' anywhere in buffer (Binwalk / Carving support)
+  for (let i = 0; i < bytes.length - 4; i++) {
+    if (bytes[i] === 0x50 && bytes[i + 1] === 0x4b && (bytes[i + 2] === 0x03 || bytes[i + 2] === 0x01) && (bytes[i + 3] === 0x04 || bytes[i + 3] === 0x02)) {
+      result.isZip = true;
+      break;
+    }
   }
 
   if (!result.isZip) return result;
