@@ -644,31 +644,56 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
     }
   }
 
-  // If image, read as Data URL & execute Python steg_solver.py via backend API for 100% precision
+  // Convert file to Base64 for Deep Local Agent Python Analysis (PCAP, APK, Image, Binary, Archive)
   let imageBase64: string | undefined;
-  if (category === 'image') {
-    try {
-      imageBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+  let fileBase64: string | undefined;
+  try {
+    fileBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
 
-      // First try Local Machine Agent Bridge (http://localhost:7788) if user is running local Python Agent
-      if (imageBase64) {
+    if (fileBase64) {
+      if (category === 'image') imageBase64 = fileBase64;
+
+      // Try Local Machine Agent Bridge (http://localhost:7788)
+      try {
+        const localAgentRes = await fetch('http://localhost:7788/api/analyze-stego', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileBase64,
+            category
+          })
+        });
+
+        if (localAgentRes.ok) {
+          const data = await localAgentRes.json();
+          if (data.flags && Array.isArray(data.flags)) {
+            data.flags.forEach((f: string) => flagCandidates.push(f));
+          }
+          if (data.stdout) {
+            details.pythonStdout = data.stdout;
+          }
+        }
+      } catch {
+        // Fallback to relative backend API if local agent is offline
         try {
-          const localAgentRes = await fetch('http://localhost:7788/api/analyze-stego', {
+          const res = await fetch('/api/analyze-stego', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               fileName: file.name,
-              fileBase64: imageBase64
+              fileBase64,
+              category
             })
           });
 
-          if (localAgentRes.ok) {
-            const data = await localAgentRes.json();
+          if (res.ok) {
+            const data = await res.json();
             if (data.flags && Array.isArray(data.flags)) {
               data.flags.forEach((f: string) => flagCandidates.push(f));
             }
@@ -677,34 +702,17 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             }
           }
         } catch {
-          // Fallback to relative endpoint if local agent is not running
-          try {
-            const res = await fetch('/api/analyze-stego', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                fileName: file.name,
-                fileBase64: imageBase64
-              })
-            });
-
-            if (res.ok) {
-              const data = await res.json();
-              if (data.flags && Array.isArray(data.flags)) {
-                data.flags.forEach((f: string) => flagCandidates.push(f));
-              }
-              if (data.stdout) {
-                details.pythonStdout = data.stdout;
-              }
-            }
-          } catch {
-            // ignore
-          }
+          // ignore
         }
       }
+    }
+  } catch {
+    // ignore
+  }
 
-      // Fallback: Client-side Canvas LSB Bit-plane Analysis
-      if (flagCandidates.length === 0 && imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
+    // Fallback: Client-side Canvas LSB Bit-plane Analysis
+    if (flagCandidates.length === 0 && imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      try {
         const img = new Image();
         img.src = imageBase64;
         await new Promise((res) => { img.onload = res; img.onerror = res; });
@@ -745,11 +753,10 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             }
           }
         }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
-  }
 
   // If text, read string (or if file is small and high ASCII ratio)
   let rawText: string | undefined;

@@ -75,12 +75,34 @@ export const LocalAgentView: React.FC = () => {
       'echo         if self.path == "/api/analyze-stego": >> ctf_agent_runner.py',
       'echo             length = int(self.headers.get("Content-Length", 0)) >> ctf_agent_runner.py',
       'echo             body = json.loads(self.rfile.read(length).decode("utf-8")) >> ctf_agent_runner.py',
+      'echo             category = body.get("category", "") >> ctf_agent_runner.py',
+      'echo             file_name = body.get("fileName", "file") >> ctf_agent_runner.py',
+      'echo             log_lines = [f"[Windows Desktop Agent Engine] PC Python Analysis for {file_name} ({category})"] >> ctf_agent_runner.py',
       'echo             b64 = body.get("fileBase64", "").split(",")[-1] >> ctf_agent_runner.py',
       'echo             buf = base64.b64decode(b64) >> ctf_agent_runner.py',
       'echo             found = set() >> ctf_agent_runner.py',
       'echo             reg = r"(flag\\{[A-Za-z0-9_\\-]{3,80}\\}|ctf\\{[A-Za-z0-9_\\-]{3,80}\\}|ELEC\\{[A-Za-z0-9_\\-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-]{3,80}\\})" >> ctf_agent_runner.py',
       'echo             text = buf.decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
       'echo             for m in re.findall(reg, text, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
+      'echo             if category in ("pcap", "pcapng") or file_name.lower().endswith((".pcap", ".pcapng")): >> ctf_agent_runner.py',
+      'echo                 ips = set(re.findall(r"\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b", text)) >> ctf_agent_runner.py',
+      'echo                 urls = set(re.findall(r"https?://[^\\s\\\"\\\'\\>\\<]+", text)) >> ctf_agent_runner.py',
+      'echo                 log_lines.append(f"  [PCAP Engine] Extracted {len(ips)} IPs, {len(urls)} HTTP Endpoints") >> ctf_agent_runner.py',
+      'echo                 for u in list(urls)[:5]: log_lines.append(f"    * URL: {u}") >> ctf_agent_runner.py',
+      'echo             if category in ("apk", "archive") or file_name.lower().endswith((".apk", ".zip", ".jar")): >> ctf_agent_runner.py',
+      'echo                 try: >> ctf_agent_runner.py',
+      'echo                     import zipfile, io >> ctf_agent_runner.py',
+      'echo                     with zipfile.ZipFile(io.BytesIO(buf)) as z: >> ctf_agent_runner.py',
+      'echo                         namelist = z.namelist() >> ctf_agent_runner.py',
+      'echo                         log_lines.append(f"  [Archive/APK Engine] Scanned {len(namelist)} internal files") >> ctf_agent_runner.py',
+      'echo                         for fname in namelist: >> ctf_agent_runner.py',
+      'echo                             for m in re.findall(reg, fname, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
+      'echo                             if fname.endswith((".txt", ".xml", ".json", ".smali", ".py", ".js", ".html")): >> ctf_agent_runner.py',
+      'echo                                 try: >> ctf_agent_runner.py',
+      'echo                                     zcontent = z.read(fname).decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
+      'echo                                     for m in re.findall(reg, zcontent, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
+      'echo                                 except Exception: pass >> ctf_agent_runner.py',
+      'echo                 except Exception as e: log_lines.append(f"  [Zip/APK Warning]: {e}") >> ctf_agent_runner.py',
       'echo             iend_pos = buf.find(b"IEND") >> ctf_agent_runner.py',
       'echo             if iend_pos != -1 and iend_pos + 8 ^< len(buf): >> ctf_agent_runner.py',
       'echo                 extra = buf[iend_pos+8:].decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
@@ -109,11 +131,10 @@ export const LocalAgentView: React.FC = () => {
       'echo                     for m in re.findall(reg, comb_bytes.decode("latin-1", errors="ignore"), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
       'echo                 os.unlink(temp.name) >> ctf_agent_runner.py',
       'echo             except Exception: pass >> ctf_agent_runner.py',
-      'echo             log_lines = ["[Windows Desktop Agent Engine] PC Python Analysis Finished."] >> ctf_agent_runner.py',
       'echo             if found: >> ctf_agent_runner.py',
       'echo                 log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):") >> ctf_agent_runner.py',
       'echo                 for f in found: log_lines.append(f"  -> {f}") >> ctf_agent_runner.py',
-      'echo             else: log_lines.append("[i] Result: No flag pattern string detected in LSB/Metadata.") >> ctf_agent_runner.py',
+      'echo             else: log_lines.append("[i] Result: No flag pattern string detected.") >> ctf_agent_runner.py',
       'echo             self.send_response(200) >> ctf_agent_runner.py',
       'echo             self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
       'echo             self.send_header("Content-Type", "application/json") >> ctf_agent_runner.py',
@@ -164,23 +185,43 @@ class H(http.server.BaseHTTPRequestHandler):
             b64 = body.get('fileBase64', '').split(',')[-1]
             buf = base64.b64decode(b64)
             found = set()
-            reg = r"(flag\\{[A-Za-z0-9_-]{3,80}\\}|ctf\\{[A-Za-z0-9_-]{3,80}\\}|ELEC\\{[A-Za-z0-9_-]{3,80}\\})"
+            reg = r"(flag\\{[A-Za-z0-9_-]{3,80}\\}|ctf\\{[A-Za-z0-9_-]{3,80}\\}|ELEC\\{[A-Za-z0-9_-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_-]{3,80}\\})"
             text = buf.decode('latin-1', errors='ignore')
             for m in re.findall(reg, text, re.IGNORECASE): found.add(m)
+            iend_pos = buf.find(b'IEND')
+            if iend_pos != -1 and iend_pos + 8 < len(buf):
+                extra = buf[iend_pos+8:].decode('latin-1', errors='ignore')
+                for m in re.findall(reg, extra, re.IGNORECASE): found.add(m)
             try:
                 from PIL import Image
                 temp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
                 temp.write(buf)
                 temp.close()
                 img = Image.open(temp.name)
+                if img.info:
+                    for k, v in img.info.items():
+                        for m in re.findall(reg, str(v), re.IGNORECASE): found.add(m)
                 if img.mode in ('RGB', 'RGBA'):
-                    px = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
-                    for c in range(3):
-                        bits = [str(p[c] & 1) for p in (px if isinstance(px[0], (tuple, list)) else [px[i:i+3] for i in range(0, len(px), 3)])]
-                        byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits), 8)])
+                    raw_pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
+                    num_channels = len(raw_pixels[0]) if isinstance(raw_pixels[0], (tuple, list)) else 3
+                    for c in range(min(num_channels, 4)):
+                        bits = [str((p[c] if isinstance(p, (tuple, list)) else p) & 1) for p in raw_pixels]
+                        byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits)-7, 8)])
                         for m in re.findall(reg, byte_arr.decode('latin-1', errors='ignore'), re.IGNORECASE): found.add(m)
+                    all_bits = []
+                    for p in raw_pixels:
+                        for c in range(min(len(p) if isinstance(p, (tuple, list)) else 1, 3)):
+                            all_bits.append(str((p[c] if isinstance(p, (tuple, list)) else p) & 1))
+                    comb_bytes = bytearray([int("".join(all_bits[i:i+8]), 2) for i in range(0, len(all_bits)-7, 8)])
+                    for m in re.findall(reg, comb_bytes.decode('latin-1', errors='ignore'), re.IGNORECASE): found.add(m)
                 os.unlink(temp.name)
             except Exception: pass
+
+            log_lines = ["[Windows Desktop Agent Engine] PC Python Analysis Finished."]
+            if found:
+                log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):")
+                for f in found: log_lines.append(f"  -> {f}")
+            else: log_lines.append("[i] Result: No flag pattern string detected in LSB/Metadata.")
 
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
@@ -188,7 +229,7 @@ class H(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps({
                 "success": True,
-                "stdout": "[Windows Desktop Agent] Analyzed via PC Python Engine",
+                "stdout": "\n".join(log_lines),
                 "flags": list(found)
             }).encode())
 
