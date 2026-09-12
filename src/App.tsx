@@ -197,7 +197,7 @@ export function App() {
 
   // Helper to extract flag from text
   const extractFlagCandidate = (text: string): string | undefined => {
-    const regex = /(flag\{[^}]+\}|ctf\{[^}]+\}|FLAG\{[^}]+\}|CTF\{[^}]+\})/i;
+    const regex = /(?:flag|ctf|elec|picoctf)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-z0-9_-]+\{[^\r\n}]{3,100}\}/i;
     const match = text.match(regex);
     return match ? match[0] : undefined;
   };
