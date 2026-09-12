@@ -79,18 +79,22 @@ export function extractPrintableStrings(bytes: Uint8Array, minLen = 4, maxString
     } else {
       if (current.length >= minLen) {
         result.push(current);
-        if (result.length >= maxStrings * 2) break;
       }
       current = '';
     }
   }
-  if (current.length >= minLen && result.length < maxStrings * 2) {
+  if (current.length >= minLen) {
     result.push(current);
   }
 
-  // Deduplicate and prioritize strings containing keywords like flag, http, user, pass, key, admin
+  // Deduplicate and prioritize strings containing flag patterns, keywords, or braces
   const unique = Array.from(new Set(result));
   unique.sort((a, b) => {
+    const aFlag = /(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{|\{/i.test(a);
+    const bFlag = /(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{|\{/i.test(b);
+    if (aFlag && !bFlag) return -1;
+    if (!aFlag && bFlag) return 1;
+
     const aInteresting = /flag|ctf|elec|http|pass|key|user|admin|token|secret/i.test(a);
     const bInteresting = /flag|ctf|elec|http|pass|key|user|admin|token|secret/i.test(b);
     if (aInteresting && !bInteresting) return -1;
@@ -539,7 +543,47 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
       category = 'image';
       categoryThai = 'ไฟล์ภาพสเตกาโนกราฟี (Image)';
       recommendedAgentIds.push('steghunter', 'forensicx');
-      summary = `ตรวจพบไฟล์รูปภาพ (${file.type || ext.toUpperCase()})
+      
+      // Check for appended bytes after EOF marker (JPEG: FF D9, PNG: IEND)
+      let eofNotice = '';
+      if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+        // JPEG: Find last FF D9
+        let lastEoi = -1;
+        for (let i = bytes.length - 2; i >= 2; i--) {
+          if (bytes[i] === 0xff && bytes[i + 1] === 0xd9) {
+            lastEoi = i;
+            break;
+          }
+        }
+        if (lastEoi !== -1 && lastEoi + 2 < bytes.length) {
+          const extraBytes = bytes.slice(lastEoi + 2);
+          const extraStrings = extractPrintableStrings(extraBytes, 3, 20);
+          const extraFlags = findFlagCandidates(extraStrings);
+          if (extraFlags.length > 0) {
+            extraFlags.forEach(f => flagCandidates.push(f));
+          }
+          eofNotice = ` (ตรวจพบ ${extraBytes.length} บิตส่วนต่อท้ายหลังจุดจบไฟล์ JPEG EOI!)`;
+        }
+      } else if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+        // PNG: Find IEND chunk (49 45 4E 44)
+        for (let i = 0; i < bytes.length - 8; i++) {
+          if (bytes[i] === 0x49 && bytes[i + 1] === 0x45 && bytes[i + 2] === 0x4e && bytes[i + 3] === 0x44) {
+            const endPos = i + 8; // IEND + 4 bytes CRC
+            if (endPos < bytes.length) {
+              const extraBytes = bytes.slice(endPos);
+              const extraStrings = extractPrintableStrings(extraBytes, 3, 20);
+              const extraFlags = findFlagCandidates(extraStrings);
+              if (extraFlags.length > 0) {
+                extraFlags.forEach(f => flagCandidates.push(f));
+              }
+              eofNotice = ` (ตรวจพบ ${extraBytes.length} บิตส่วนต่อท้ายหลัง PNG IEND!)`;
+              break;
+            }
+          }
+        }
+      }
+
+      summary = `ตรวจพบไฟล์รูปภาพ (${file.type || ext.toUpperCase()})${eofNotice}
 เหมาะสำหรับการซ่อนข้อความ LSB Stego, EXIF metadata, หรือซ่อนไฟล์ส่วนต่อท้าย (IEND/EOF padding)`;
     }
   }
