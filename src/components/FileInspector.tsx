@@ -21,7 +21,8 @@ import {
   Layers,
   Code,
   FolderTree,
-  FileSearch
+  FileSearch,
+  Terminal
 } from 'lucide-react';
 
 interface FileInspectorProps {
