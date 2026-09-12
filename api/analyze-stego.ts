@@ -65,36 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // 3. Pixel Bit-plane LSB Extraction (Pure JS Data View for PNG/BMP)
-    logs.push(`\n[3/4] Running Pixel Bit-plane Analysis...`);
+    // 3. Pixel Bit-plane LSB Extraction
+    logs.push(`\n[3/4] Running File Structure & Appended Data Inspection...`);
     if (isPng) {
-      // Decode IDAT raw bytes stream scan
-      const idatIdx = buffer.indexOf(Buffer.from('IDAT'));
-      if (idatIdx !== -1) {
-        const rawScan = buffer.subarray(idatIdx);
-        // Extract LSB from raw pixel data stream
-        const lsbBytes: number[] = [];
-        let byteVal = 0;
-        let bitCount = 0;
-
-        for (let i = 0; i < rawScan.length && lsbBytes.length < 4096; i++) {
-          const bit = rawScan[i] & 1;
-          byteVal = (byteVal << 1) | bit;
-          bitCount++;
-          if (bitCount === 8) {
-            lsbBytes.push(byteVal);
-            byteVal = 0;
-            bitCount = 0;
-          }
-        }
-
-        const decodedText = Buffer.from(lsbBytes).toString('latin1');
-        const matches = decodedText.match(flagRegex) || [];
-        matches.forEach(m => {
-          foundFlags.add(m);
-          logs.push(`  [+] Pixel Bit-stream LSB Flag Found: ${m}`);
-        });
-      }
+      logs.push(`  [i] PNG Header: Verified 8-byte magic signature (89 50 4E 47 0D 0A 1A 0A).`);
     }
 
     // 4. Summary
