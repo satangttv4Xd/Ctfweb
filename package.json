@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "gen-token": "node scripts/generate-token.js"
+    "gen-token": "node scripts/generate-token.js",
+    "gen-token:satang": "node scripts/generate-token.js satang"
   },
   "dependencies": {
     "lucide-react": "^1.45.0",
