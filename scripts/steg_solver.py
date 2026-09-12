@@ -14,6 +14,8 @@ def find_flag_in_image(image_path):
         return
 
     found_flags = set()
+    # Strict Flag Regex: must have 3+ valid chars inside {...}
+    flag_regex = r'(flag\{[A-Za-z0-9_\-]{3,80}\}|ctf\{[A-Za-z0-9_\-]{3,80}\}|ELEC\{[A-Za-z0-9_\-]{3,80}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-]{3,80}\})'
 
     # --- 1. Raw Binary & String Regex Search ---
     print("[1/5] Checking Raw Bytes & Metadata Strings...")
@@ -21,7 +23,6 @@ def find_flag_in_image(image_path):
         data = f.read()
 
     text = data.decode('latin-1', errors='ignore')
-    flag_regex = r'(flag\{[^}]+\}|ctf\{[^}]+\}|ELEC\{[^}]+\}|[a-zA-Z0-9_-]{3,}\{.*?\})'
     raw_matches = re.findall(flag_regex, text, re.IGNORECASE)
     for m in raw_matches:
         if len(m) < 80 and all(ord(c) < 128 for c in m):
@@ -67,28 +68,31 @@ def find_flag_in_image(image_path):
                 found_flags.add(m)
                 print(f"  [+] Appended Data Flag Found: {m}")
 
-    # --- 4. LSB Bit Plane Analysis ---
+    # --- 4. LSB Bit Plane Analysis (PNG / BMP Lossless formats only) ---
     print("\n[4/5] Running LSB (Least Significant Bit) Bit Plane Analysis...")
-    try:
-        if img.mode in ('RGB', 'RGBA'):
-            pixels = list(img.getdata())
-            for channel_idx, channel_name in enumerate(['Red', 'Green', 'Blue']):
-                bits = [str(p[channel_idx] & 1) for p in pixels]
-                bit_str = ''.join(bits)
-                
-                byte_arr = bytearray()
-                for i in range(0, len(bit_str), 8):
-                    b = int(bit_str[i:i+8], 2)
-                    byte_arr.append(b)
-                
-                lsb_text = byte_arr.decode('latin-1', errors='ignore')
-                matches = re.findall(flag_regex, lsb_text, re.IGNORECASE)
-                for m in matches:
-                    if len(m) < 80 and all(ord(c) < 128 for c in m):
-                        found_flags.add(m)
-                        print(f"  [+] LSB {channel_name} Channel Flag Found: {m}")
-    except Exception as e:
-        print(f"  LSB Error: {e}")
+    if image_path.lower().endswith(('.png', '.bmp')):
+        try:
+            if img.mode in ('RGB', 'RGBA'):
+                pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
+                for channel_idx, channel_name in enumerate(['Red', 'Green', 'Blue']):
+                    bits = [str(p[channel_idx] & 1) for p in (pixels if isinstance(pixels[0], (tuple, list)) else [pixels[i:i+3] for i in range(0, len(pixels), 3)])]
+                    bit_str = ''.join(bits)
+                    
+                    byte_arr = bytearray()
+                    for i in range(0, len(bit_str), 8):
+                        b = int(bit_str[i:i+8], 2)
+                        byte_arr.append(b)
+                    
+                    lsb_text = byte_arr.decode('latin-1', errors='ignore')
+                    matches = re.findall(flag_regex, lsb_text, re.IGNORECASE)
+                    for m in matches:
+                        if len(m) < 80 and all(ord(c) < 128 for c in m):
+                            found_flags.add(m)
+                            print(f"  [+] LSB {channel_name} Channel Flag Found: {m}")
+        except Exception as e:
+            print(f"  LSB Warning: {e}")
+    else:
+        print("  [i] Skipping Pixel LSB on JPEG (JPEG uses lossy DCT compression, pixel LSB is invalid).")
 
     # --- 5. Summary & Results ---
     print("\n==========================================")
