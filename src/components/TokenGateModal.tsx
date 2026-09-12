@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, Terminal, ArrowRight } from 'lucide-react';
+import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, ArrowRight } from 'lucide-react';
 import { verifyToken, saveAuthToken } from '../config/tokenConfig';
 
 interface TokenGateModalProps {
@@ -210,33 +210,6 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
             <ArrowRight size={16} />
           </button>
         </form>
-
-        {/* Footer info box */}
-        <div style={{
-          padding: '1rem 1.5rem',
-          borderTop: '1px solid #1e293b',
-          backgroundColor: '#020617',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-            <Terminal size={14} color="#38bdf8" />
-            <span>คำสั่งสุ่ม Token ใหม่ใน Terminal:</span>
-          </div>
-          <div style={{
-            padding: '0.5rem 0.75rem',
-            borderRadius: '0.5rem',
-            backgroundColor: '#0f172a',
-            border: '1px solid #1e293b',
-            fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
-            fontSize: '0.75rem',
-            color: '#38bdf8',
-            wordBreak: 'break-all'
-          }}>
-            npm run gen-token:satang
-          </div>
-        </div>
 
       </div>
     </div>
