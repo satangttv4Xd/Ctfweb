@@ -2,13 +2,14 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import type { Plugin, Connect } from 'vite';
+import type { IncomingMessage, ServerResponse } from 'http';
+import type { Plugin } from 'vite';
 
 export function pythonStegoPlugin(): Plugin {
   return {
     name: 'python-stego-solver',
     configureServer(server) {
-      server.middlewares.use('/api/analyze-stego', (req: Connect.IncomingMessage, res: Connect.ServerResponse) => {
+      server.middlewares.use('/api/analyze-stego', (req: IncomingMessage, res: ServerResponse) => {
         if (req.method !== 'POST') {
           res.statusCode = 455;
           res.end(JSON.stringify({ error: 'Method not allowed' }));
