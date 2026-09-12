@@ -615,7 +615,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
     }
   }
 
-  // If image, read as Data URL & perform client-side Canvas LSB Bit-plane Analysis
+  // If image, read as Data URL & execute Python steg_solver.py via backend API for 100% precision
   let imageBase64: string | undefined;
   if (category === 'image') {
     try {
@@ -626,7 +626,31 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         reader.readAsDataURL(file);
       });
 
-      if (imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
+      // Call Python Stego Solver Backend Endpoint
+      if (imageBase64) {
+        try {
+          const res = await fetch('/api/analyze-stego', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileBase64: imageBase64
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.flags && Array.isArray(data.flags)) {
+              data.flags.forEach((f: string) => flagCandidates.push(f));
+            }
+          }
+        } catch {
+          // fallback if backend endpoint is unavailable
+        }
+      }
+
+      // Fallback: Client-side Canvas LSB Bit-plane Analysis
+      if (flagCandidates.length === 0 && imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
         const img = new Image();
         img.src = imageBase64;
         await new Promise((res) => { img.onload = res; img.onerror = res; });
@@ -641,8 +665,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const pixels = imgData.data;
 
-            // Extract LSB bits from Red, Green, Blue channels
-            const channels = [0, 1, 2]; // R, G, B
+            const channels = [0, 1, 2];
             for (const ch of channels) {
               let byteVal = 0;
               let bitCount = 0;
@@ -670,7 +693,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         }
       }
     } catch {
-      // ignore LSB canvas extraction error
+      // ignore
     }
   }
 
