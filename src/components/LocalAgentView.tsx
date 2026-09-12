@@ -94,6 +94,7 @@ export const LocalAgentView: React.FC = () => {
       'echo                         byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits), 8)]) >> ctf_agent_runner.py',
       'echo                         for m in re.findall(reg, byte_arr.decode("latin-1", errors="ignore"), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
       'echo                 os.unlink(temp.name) >> ctf_agent_runner.py',
+      'echo             except Exception: pass >> ctf_agent_runner.py',
       'echo             log_lines = ["[Windows Desktop Agent Engine] PC Python Analysis Finished."] >> ctf_agent_runner.py',
       'echo             if found: >> ctf_agent_runner.py',
       'echo                 log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):") >> ctf_agent_runner.py',
