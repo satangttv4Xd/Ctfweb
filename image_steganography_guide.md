@@ -108,22 +108,61 @@ flowchart TD
 
 ---
 
-## 🤖 3. ข้อความตัวอย่างสำหรับสั่งให้ AI Agent ทำงานและแกะ Flag (Prompt Template)
+## 🐍 4. สคริปต์ Python อัตโนมัติสำหรับสแกนหา Flag ในรูปภาพ (Automated Python Solver)
 
-สามารถนำ Prompt นี้ไปใช้ใน `StegHunter` หรือระบบ AI เพื่อให้แกะหา Flag ในรูปภาพได้อย่างแม่นยำ:
+สามารถใช้สคริปต์ Python ที่สร้างไว้ในโปรเจกต์ [`scripts/steg_solver.py`](file:///c:/Users/Woradet/Documents/ctfweb/scripts/steg_solver.py) เพื่อสแกนหา Flag จากรูปภาพโดยอัตโนมัติ (ครอบคลุมทั้ง EXIF, Raw Strings, Appended EOF Data และ LSB Bit Plane):
 
-```text
-[SYSTEM INSTRUCTION FOR STEGANOGRAPHY ANALYSIS]
-You are a World-Class Steganography Specialist. When provided with an image:
-
-1. METADATA SCAN: Inspect EXIF data, tEXt chunks, comments, and strings.
-2. EOF CHECK: Check for appended files or data after PNG IEND (49 45 4E 44 AE 42 60 82) or JPEG EOI (FF D9).
-3. LSB EXTRACTION: Perform LSB bit plane extraction on Red, Green, Blue, Alpha channels (Bit 0).
-4. STEGHIDE TRY: Test steghide extraction with empty password "".
-5. VISUAL INSPECTION: Inspect Red/Green/Blue Bit Plane 0 for hidden text or QR codes.
-
-CRITICAL ACCURACY RULE:
-- If a valid flag string (e.g. flag{...}, CTF{...}) is found, return it under Primary Flag.
-- If NO hidden flag or payload is found after all checks, report: "[ไม่พบข้อมูล Flag ในรูปภาพนี้]" with 0% confidence.
-- NEVER fabricate, invent, or output dummy/placeholder flags.
+```bash
+# วิธีรันสแกนหา Flag ในรูปภาพเป้าหมาย
+python scripts/steg_solver.py example/puzzle.png
 ```
+
+### โค้ด Python สแกนรูปภาพอัตโนมัติ (`scripts/steg_solver.py`):
+```python
+import os, sys, re
+from PIL import Image
+
+def find_flag_in_image(image_path):
+    print(f"[*] Inspecting Image: {image_path}")
+    found_flags = set()
+
+    with open(image_path, 'rb') as f:
+        data = f.read()
+
+    # 1. Plaintext Regex Search
+    text = data.decode('latin-1', errors='ignore')
+    flag_regex = r'(flag\{[^}]+\}|ctf\{[^}]+\}|[a-zA-Z0-9_-]{3,}\{.*?\})'
+    for m in re.findall(flag_regex, text, re.IGNORECASE):
+        if len(m) < 80 and all(ord(c) < 128 for c in m):
+            found_flags.add(m)
+
+    # 2. EXIF Metadata
+    try:
+        img = Image.open(image_path)
+        for k, v in img.info.items():
+            for m in re.findall(flag_regex, str(v), re.IGNORECASE):
+                found_flags.add(m)
+    except Exception:
+        pass
+
+    # 3. LSB Bit Plane Analysis
+    try:
+        if img.mode in ('RGB', 'RGBA'):
+            pixels = list(img.getdata())
+            for channel_idx in range(3):
+                bits = [str(p[channel_idx] & 1) for p in pixels]
+                bit_str = ''.join(bits)
+                byte_arr = bytearray([int(bit_str[i:i+8], 2) for i in range(0, len(bit_str), 8)])
+                lsb_text = byte_arr.decode('latin-1', errors='ignore')
+                for m in re.findall(flag_regex, lsb_text, re.IGNORECASE):
+                    if len(m) < 80 and all(ord(c) < 128 for c in m):
+                        found_flags.add(m)
+    except Exception:
+        pass
+
+    print("Result Flags:", found_flags if found_flags else "No Flag Found")
+
+if __name__ == '__main__':
+    find_flag_in_image(sys.argv[1] if len(sys.argv) > 1 else 'image.png')
+```
+
