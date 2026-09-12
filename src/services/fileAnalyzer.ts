@@ -91,8 +91,8 @@ export function extractPrintableStrings(bytes: Uint8Array, minLen = 4, maxString
   // Deduplicate and prioritize strings containing keywords like flag, http, user, pass, key, admin
   const unique = Array.from(new Set(result));
   unique.sort((a, b) => {
-    const aInteresting = /flag|ctf|http|pass|key|user|admin|token|secret/i.test(a);
-    const bInteresting = /flag|ctf|http|pass|key|user|admin|token|secret/i.test(b);
+    const aInteresting = /flag|ctf|elec|http|pass|key|user|admin|token|secret/i.test(a);
+    const bInteresting = /flag|ctf|elec|http|pass|key|user|admin|token|secret/i.test(b);
     if (aInteresting && !bInteresting) return -1;
     if (!aInteresting && bInteresting) return 1;
     return b.length - a.length;
@@ -105,7 +105,7 @@ export function extractPrintableStrings(bytes: Uint8Array, minLen = 4, maxString
  * Scan strings for common CTF flag patterns
  */
 export function findFlagCandidates(strings: string[]): string[] {
-  const flagRegex = /(?:flag|ctf|picoctf|thm|htb|sec)[a-z0-9_-]*\{[^\r\n}]{3,100}\}/gi;
+  const flagRegex = /(?:flag|ctf|picoctf|elec|thm|htb|sec)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-z0-9_-]+\{[^\r\n}]{3,100}\}/gi;
   const candidates = new Set<string>();
 
   for (const s of strings) {

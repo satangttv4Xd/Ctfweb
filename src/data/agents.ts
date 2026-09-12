@@ -1720,7 +1720,9 @@ Regex patterns to match:
 - FLAG\\{[^\\}]+\\}
 - ctf\\{[^\\}]+\\}
 - CTF\\{[^\\}]+\\}
-- [a-zA-Z]+\\{[^\\}]+\\} (generic format: PREFIX{content})
+- ELEC\\{[^\\}]+\\}
+- elec\\{[^\\}]+\\}
+- [a-zA-Z0-9_-]+\\{[^\\}]+\\} (generic format: PREFIX{content})
 - Hex strings that decode to flag format
 - Base64 strings that decode to flag format
 - Numeric sequences that convert to ASCII flag
@@ -1812,7 +1814,9 @@ Regex patterns to match:
 - FLAG\\{[^\\}]+\\}
 - ctf\\{[^\\}]+\\}
 - CTF\\{[^\\}]+\\}
-- [a-zA-Z]+\\{[^\\}]+\\} (generic format: PREFIX{content})
+- ELEC\\{[^\\}]+\\}
+- elec\\{[^\\}]+\\}
+- [a-zA-Z0-9_-]+\\{[^\\}]+\\} (generic format: PREFIX{content})
 - Hex strings that decode to flag format
 - Base64 strings that decode to flag format
 - Numeric sequences that convert to ASCII flag
