@@ -106,24 +106,42 @@ export function extractPrintableStrings(bytes: Uint8Array, minLen = 4, maxString
 }
 
 /**
- * Scan strings for common CTF flag patterns (Strict Printable ASCII only)
+ * Scan strings for common CTF flag patterns (Strict 100% Printable ASCII only)
  */
 export function findFlagCandidates(strings: string[]): string[] {
-  // Strict Printable ASCII Flag Regex: Prefix + { Printable ASCII only }
+  // Strict Flag Regex: Only known prefixes OR strict word prefix + { pure 7-bit printable ASCII }
   const flagRegex = /(?:flag|ctf|picoctf|elec|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}/gi;
   const candidates = new Set<string>();
 
   for (const s of strings) {
-    // Exclude strings containing non-ASCII / garbled control characters
-    if (/[\u0000-\u001F\u007F-\uFFFF]/.test(s) && !/(?:flag|ctf|elec|picoctf)/i.test(s)) {
+    // Exclude strings containing non-ASCII / garbled control characters or extended ASCII
+    if (/[\u0080-\uFFFF]/.test(s) && !/(?:flag|ctf|elec|picoctf)/i.test(s)) {
       continue;
     }
 
     const matches = s.match(flagRegex);
     if (matches) {
       matches.forEach(m => {
-        // Ensure no garbled extended ASCII characters exist inside the flag candidate
-        if (!/[\u0080-\uFFFF]/.test(m)) {
+        // Enforce 100% pure 7-bit ASCII (char codes 32..126) inside candidate
+        let isValidAscii = true;
+        for (let i = 0; i < m.length; i++) {
+          const code = m.charCodeAt(i);
+          if (code < 32 || code > 126) {
+            isValidAscii = false;
+            break;
+          }
+        }
+
+        // Additional strict rule: If single-char prefix like 4{...} or k{...}, ensure prefix is a known CTF pattern
+        const prefixMatch = m.match(/^([a-zA-Z0-9_-]+)\{/);
+        if (prefixMatch) {
+          const prefix = prefixMatch[1].toLowerCase();
+          if (prefix.length < 3 && !['flag', 'ctf', 'elec'].includes(prefix)) {
+            isValidAscii = false;
+          }
+        }
+
+        if (isValidAscii) {
           candidates.add(m);
         }
       });
