@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle, Terminal, ArrowRight, Clipboard } from 'lucide-react';
+import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, Terminal, ArrowRight, Clipboard } from 'lucide-react';
 import { verifyToken, saveAuthToken } from '../config/tokenConfig';
 
 interface TokenGateModalProps {
@@ -27,9 +27,9 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
       setIsSuccess(true);
       setTimeout(() => {
         onSuccess();
-      }, 600);
+      }, 500);
     } else {
-      setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Token หรือสร้าง Token ใหม่ด้วย script gen-token');
+      setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Token หรือสร้าง Token ใหม่ด้วย npm run gen-token:satang');
     }
   };
 
@@ -41,51 +41,113 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
         setError(null);
       }
     } catch {
-      // ignore
+      // fallback if clipboard API fails
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 cyber-bg bg-opacity-95 backdrop-blur-xl">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900/90 shadow-2xl shadow-cyan-950/40 transition-all duration-300">
+    <div className="cyber-bg" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1.5rem',
+      backgroundColor: 'rgba(2, 6, 23, 0.95)',
+      backdropFilter: 'blur(16px)'
+    }}>
+      <div style={{
+        backgroundColor: '#0b1120',
+        border: '1px solid #1e293b',
+        borderRadius: '1rem',
+        maxWidth: '520px',
+        width: '100%',
+        boxShadow: '0 25px 50px -12px rgba(2, 132, 199, 0.25)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         
-        {/* Top Header Banner */}
-        <div className="relative border-b border-slate-800 bg-gradient-to-r from-slate-900 via-cyan-950/40 to-slate-900 p-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-500/20">
-            <Lock className="h-7 w-7 animate-pulse" />
+        {/* Header Banner */}
+        <div style={{
+          padding: '1.75rem 1.5rem',
+          borderBottom: '1px solid #1e293b',
+          textAlign: 'center',
+          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(11, 17, 32, 0.9) 100%)'
+        }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '16px',
+            background: 'rgba(56, 189, 248, 0.12)',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem auto',
+            boxShadow: '0 0 20px rgba(56, 189, 248, 0.25)'
+          }}>
+            <Lock size={28} color="#38bdf8" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
             Access Verification
           </h2>
-          <p className="mt-1 text-xs text-slate-400">
-            ระบบต้องการ <span className="font-semibold text-cyan-400">Static Token Access Key</span> ในการเข้าใช้งาน
+          <p style={{ fontSize: '0.8125rem', color: '#94a3b8', marginTop: '0.375rem', marginBottom: 0 }}>
+            กรุณากรอก <span style={{ color: '#38bdf8', fontWeight: 600 }}>Static Access Token</span> เพื่อเข้าสู่ระบบ
           </p>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
           {error && (
-            <div className="flex items-start gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300">
-              <ShieldAlert className="h-5 w-5 shrink-0 text-rose-400 mt-0.5" />
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+              padding: '0.875rem',
+              borderRadius: '0.75rem',
+              backgroundColor: 'rgba(244, 63, 94, 0.1)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              color: '#fda4af',
+              fontSize: '0.8125rem',
+              lineHeight: 1.4
+            }}>
+              <ShieldAlert size={18} color="#f43f5e" style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>{error}</span>
             </div>
           )}
 
           {isSuccess && (
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-300">
-              <CheckCircle className="h-5 w-5 shrink-0 text-emerald-400" />
-              <span>ยืนยัน Token สำเร็จกำลังเข้าสู่ระบบ...</span>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.875rem',
+              borderRadius: '0.75rem',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              color: '#6ee7b7',
+              fontSize: '0.8125rem'
+            }}>
+              <CheckCircle2 size={18} color="#10b981" />
+              <span>ยืนยัน Token สำเร็จ กำลังเข้าสู่ระบบ...</span>
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate-300">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#cbd5e1' }}>
               Static Access Token
             </label>
-            <div className="relative flex items-center">
-              <div className="pointer-events-none absolute left-3.5 text-slate-500">
-                <KeyRound className="h-4 w-4 text-cyan-500/70" />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div style={{ position: 'absolute', left: '0.875rem', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                <KeyRound size={16} color="#0284c7" />
               </div>
+              
               <input
                 type={showToken ? 'text' : 'password'}
                 value={tokenInput}
@@ -93,26 +155,56 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                   setTokenInput(e.target.value);
                   if (error) setError(null);
                 }}
-                placeholder="วาง Static Token ยาวที่นี่ (ctf_swarm_sec_...)"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950/80 py-3 pl-10 pr-20 text-xs font-mono text-cyan-300 placeholder-slate-600 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                placeholder="วาง Static Token ยาวที่นี่ (satang_...)"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 5rem 0.75rem 2.6rem',
+                  borderRadius: '0.75rem',
+                  backgroundColor: '#020617',
+                  border: '1px solid #334155',
+                  color: '#38bdf8',
+                  fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+                  fontSize: '0.8125rem',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
                 disabled={isSuccess}
               />
-              <div className="absolute right-2 flex items-center space-x-1">
+
+              <div style={{ position: 'absolute', right: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <button
                   type="button"
                   onClick={handlePaste}
-                  title="วางจาก คลิปบอร์ด"
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+                  title="วางจากคลิปบอร์ด"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '0.375rem',
+                    borderRadius: '0.375rem',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
                 >
-                  <Clipboard className="h-4 w-4" />
+                  <Clipboard size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
                   title={showToken ? 'ซ่อน Token' : 'แสดง Token'}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '0.375rem',
+                    borderRadius: '0.375rem',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
                 >
-                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -121,21 +213,49 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
           <button
             type="submit"
             disabled={isSuccess}
-            className="group relative flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/40 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 text-xs font-semibold text-white shadow-lg shadow-cyan-600/25 transition hover:from-cyan-500 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50"
+            className="btn-primary"
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              borderRadius: '0.75rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              marginTop: '0.5rem'
+            }}
           >
-            <span>{isSuccess ? 'Verified Access...' : 'ปลดล็อกเข้าใช้งานเว็บไซต์'}</span>
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <span>{isSuccess ? 'Verified Access...' : 'ปลดล็อกเข้าใช้งานระบบ'}</span>
+            <ArrowRight size={16} />
           </button>
         </form>
 
         {/* Footer info box */}
-        <div className="border-t border-slate-800/80 bg-slate-950/60 p-4 text-xs text-slate-400">
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
-            <Terminal className="h-3.5 w-3.5 text-cyan-400" />
-            <span>คำสั่งสร้าง Token ใหม่ใน Terminal:</span>
+        <div style={{
+          padding: '1rem 1.5rem',
+          borderTop: '1px solid #1e293b',
+          backgroundColor: '#020617',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+            <Terminal size={14} color="#38bdf8" />
+            <span>คำสั่งสุ่ม Token ใหม่ใน Terminal:</span>
           </div>
-          <div className="mt-2 rounded-lg border border-slate-800 bg-slate-900 p-2 font-mono text-[11px] text-cyan-400">
-            npm run gen-token
+          <div style={{
+            padding: '0.5rem 0.75rem',
+            borderRadius: '0.5rem',
+            backgroundColor: '#0f172a',
+            border: '1px solid #1e293b',
+            fontFamily: "'Fira Code', 'JetBrains Mono', monospace",
+            fontSize: '0.75rem',
+            color: '#38bdf8',
+            wordBreak: 'break-all'
+          }}>
+            npm run gen-token:satang
           </div>
         </div>
 
