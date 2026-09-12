@@ -644,7 +644,6 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             // Extract LSB bits from Red, Green, Blue channels
             const channels = [0, 1, 2]; // R, G, B
             for (const ch of channels) {
-              let bitString = '';
               let byteVal = 0;
               let bitCount = 0;
               const extractedBytes: number[] = [];
