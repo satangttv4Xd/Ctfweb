@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, Terminal, ArrowRight, Clipboard } from 'lucide-react';
+import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, Terminal, ArrowRight } from 'lucide-react';
 import { verifyToken, saveAuthToken } from '../config/tokenConfig';
 
 interface TokenGateModalProps {
@@ -30,18 +30,6 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
       }, 500);
     } else {
       setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Token หรือสร้าง Token ใหม่ด้วย npm run gen-token:satang');
-    }
-  };
-
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (text) {
-        setTokenInput(text.trim());
-        setError(null);
-      }
-    } catch {
-      // fallback if clipboard API fails
     }
   };
 
@@ -180,23 +168,6 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
               />
 
               <div style={{ position: 'absolute', right: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <button
-                  type="button"
-                  onClick={handlePaste}
-                  title="วางจากคลิปบอร์ด"
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: '0.375rem',
-                    borderRadius: '0.375rem',
-                    color: '#94a3b8',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <Clipboard size={16} />
-                </button>
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
