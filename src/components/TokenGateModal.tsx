@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2, ArrowRight } from 'lucide-react';
+import { KeyRound, Eye, EyeOff, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { verifyToken, saveAuthToken } from '../config/tokenConfig';
 
 interface TokenGateModalProps {
@@ -18,7 +18,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
 
     const trimmed = tokenInput.trim();
     if (!trimmed) {
-      setError('โปรดระบุ Static Token ก่อนเข้าใช้งานระบบ');
+      setError('กรุณากรอก Access Token');
       return;
     }
 
@@ -27,9 +27,9 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
       setIsSuccess(true);
       setTimeout(() => {
         onSuccess();
-      }, 500);
+      }, 400);
     } else {
-      setError('Token ไม่ถูกต้อง! โปรดตรวจสอบ Static Access Token อีกครั้ง');
+      setError('Token ไม่ถูกต้อง โปรดตรวจสอบอีกครั้ง');
     }
   };
 
@@ -44,7 +44,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '1.5rem',
+      padding: '1.25rem',
       backgroundColor: 'rgba(2, 6, 23, 0.95)',
       backdropFilter: 'blur(16px)'
     }}>
@@ -52,60 +52,69 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
         backgroundColor: '#0b1120',
         border: '1px solid #1e293b',
         borderRadius: '1rem',
-        maxWidth: '520px',
+        maxWidth: '440px',
         width: '100%',
-        boxShadow: '0 25px 50px -12px rgba(2, 132, 199, 0.25)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column'
       }}>
         
-        {/* Header Banner */}
+        {/* Header Section */}
         <div style={{
-          padding: '1.75rem 1.5rem',
-          borderBottom: '1px solid #1e293b',
+          padding: '1.75rem 1.5rem 1.25rem 1.5rem',
           textAlign: 'center',
-          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(11, 17, 32, 0.9) 100%)'
+          borderBottom: '1px solid #1e293b',
+          backgroundColor: '#0f172a'
         }}>
           <div style={{
-            width: '56px',
-            height: '56px',
-            borderRadius: '16px',
-            background: 'rgba(56, 189, 248, 0.12)',
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            backgroundColor: 'rgba(56, 189, 248, 0.1)',
             border: '1px solid rgba(56, 189, 248, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            margin: '0 auto 1rem auto',
-            boxShadow: '0 0 20px rgba(56, 189, 248, 0.25)'
+            margin: '0 auto 0.875rem auto'
           }}>
-            <Lock size={28} color="#38bdf8" />
+            <KeyRound size={24} color="#38bdf8" />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f8fafc', margin: 0, letterSpacing: '-0.02em' }}>
-            Access Verification
+
+          <h2 style={{
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            color: '#f8fafc',
+            margin: 0
+          }}>
+            Access Token
           </h2>
-          <p style={{ fontSize: '0.8125rem', color: '#94a3b8', marginTop: '0.375rem', marginBottom: 0 }}>
-            กรุณากรอก <span style={{ color: '#38bdf8', fontWeight: 600 }}>Static Access Token</span> เพื่อเข้าสู่ระบบ
+          <p style={{
+            fontSize: '0.8125rem',
+            color: '#94a3b8',
+            marginTop: '0.35rem',
+            marginBottom: 0
+          }}>
+            กรอก Access Token เพื่อเข้าใช้งาน
           </p>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} autoComplete="off" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
           
           {error && (
             <div style={{
               display: 'flex',
-              alignItems: 'flex-start',
-              gap: '0.75rem',
-              padding: '0.875rem',
-              borderRadius: '0.75rem',
+              alignItems: 'center',
+              gap: '0.625rem',
+              padding: '0.75rem 0.875rem',
+              borderRadius: '0.5rem',
               backgroundColor: 'rgba(244, 63, 94, 0.1)',
               border: '1px solid rgba(244, 63, 94, 0.3)',
               color: '#fda4af',
-              fontSize: '0.8125rem',
-              lineHeight: 1.4
+              fontSize: '0.8125rem'
             }}>
-              <ShieldAlert size={18} color="#f43f5e" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <ShieldAlert size={16} color="#f43f5e" style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
@@ -114,31 +123,28 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.875rem',
-              borderRadius: '0.75rem',
+              gap: '0.625rem',
+              padding: '0.75rem 0.875rem',
+              borderRadius: '0.5rem',
               backgroundColor: 'rgba(16, 185, 129, 0.1)',
               border: '1px solid rgba(16, 185, 129, 0.3)',
               color: '#6ee7b7',
               fontSize: '0.8125rem'
             }}>
-              <CheckCircle2 size={18} color="#10b981" />
-              <span>ยืนยัน Token สำเร็จ กำลังเข้าสู่ระบบ...</span>
+              <CheckCircle2 size={16} color="#10b981" />
+              <span>ยืนยันสำเร็จ กำลังเข้าสู่ระบบ...</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#cbd5e1' }}>
-              Static Access Token
+              Token
             </label>
+
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <div style={{ position: 'absolute', left: '0.875rem', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                <KeyRound size={16} color="#0284c7" />
-              </div>
-              
               <input
                 type="text"
-                name="static_access_token_no_autofill"
+                name="token"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="none"
@@ -150,11 +156,11 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                   setTokenInput(e.target.value);
                   if (error) setError(null);
                 }}
-                placeholder="วาง Static Token ยาวที่นี่ (satang_...)"
+                placeholder="กรอก Token..."
                 style={{
                   width: '100%',
-                  padding: '0.75rem 5rem 0.75rem 2.6rem',
-                  borderRadius: '0.75rem',
+                  padding: '0.75rem 2.5rem 0.75rem 0.875rem',
+                  borderRadius: '0.5rem',
                   backgroundColor: '#020617',
                   border: '1px solid #334155',
                   color: '#38bdf8',
@@ -167,7 +173,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                 disabled={isSuccess}
               />
 
-              <div style={{ position: 'absolute', right: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ position: 'absolute', right: '0.375rem', display: 'flex', alignItems: 'center' }}>
                 <button
                   type="button"
                   onClick={() => setShowToken(!showToken)}
@@ -177,7 +183,7 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
                     border: 'none',
                     padding: '0.375rem',
                     borderRadius: '0.375rem',
-                    color: '#94a3b8',
+                    color: '#64748b',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center'
@@ -195,19 +201,17 @@ export const TokenGateModal: React.FC<TokenGateModalProps> = ({ onSuccess }) => 
             className="btn-primary"
             style={{
               width: '100%',
-              padding: '0.875rem',
-              borderRadius: '0.75rem',
+              padding: '0.75rem',
+              borderRadius: '0.5rem',
               fontSize: '0.875rem',
               fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.5rem',
-              marginTop: '0.5rem'
+              marginTop: '0.25rem'
             }}
           >
-            <span>{isSuccess ? 'Verified Access...' : 'ปลดล็อกเข้าใช้งานระบบ'}</span>
-            <ArrowRight size={16} />
+            <span>{isSuccess ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}</span>
           </button>
         </form>
 
