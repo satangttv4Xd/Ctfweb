@@ -131,14 +131,11 @@ export async function simulateAgentResponse(agentId: AgentId, challengeInput: st
     let detectedFlag: string | null = null;
     let challengeType = 'General File / Image Analysis';
 
-    // Scan for any extracted flag candidates in the prompt/file context
+    // Scan for any extracted flag candidates in the prompt/file context FIRST
     const inputFlagMatch = challengeInput.match(/(?:flag|ctf|elec|picoctf)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-z0-9_-]+\{[^\r\n}]{3,100}\}/gi);
     if (inputFlagMatch && inputFlagMatch.length > 0) {
       detectedFlag = inputFlagMatch[0];
       challengeType = 'Extracted Flag Analysis';
-    } else if (lowerInput.includes('sql') || lowerInput.includes('jwt')) {
-      detectedFlag = 'flag{sql_un10n_and_jwt_n0n3_4lg0r1thm_byp4ss}';
-      challengeType = 'Web Exploitation & Auth Bypass';
     } else if (lowerInput.includes('layer cake') || (lowerInput.includes('base64') && lowerInput.includes('crypto'))) {
       detectedFlag = 'flag{cr7pt0_l4y3rs_p33l3d_succ3ssfully_2026}';
       challengeType = 'Multi-layer Cryptography';
@@ -154,6 +151,9 @@ export async function simulateAgentResponse(agentId: AgentId, challengeInput: st
     } else if (lowerInput.includes('brainfuck') || lowerInput.includes('+++++')) {
       detectedFlag = 'flag{bf_ok}';
       challengeType = 'Esoteric Language';
+    } else if (lowerInput.includes('sql') || lowerInput.includes('jwt')) {
+      detectedFlag = 'flag{sql_un10n_and_jwt_n0n3_4lg0r1thm_byp4ss}';
+      challengeType = 'Web Exploitation & Auth Bypass';
     }
 
     if (!detectedFlag || isNoFlag) {
