@@ -29,9 +29,9 @@ if (mode.toLowerCase().includes('satang')) {
   newToken = `${prefix}${randomHex}`;
 }
 
-// Single token array
+// Save tokens array
 const data = {
-  tokens: [newToken],
+  tokens: ['dev'],
   updatedAt: new Date().toISOString()
 };
 
