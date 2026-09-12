@@ -235,6 +235,29 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
+          {/* Localhost Python Agent Bridge Indicator */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.45rem 0.75rem',
+              borderRadius: '0.5rem',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+              border: '1px solid rgba(16, 185, 129, 0.35)',
+              color: '#34d399'
+            }}
+            title="เชื่อมต่อระบบ CTF Swarm Local Agent (npm run agent) เพื่อรัน Python Engine บนเครื่องคุณ"
+          >
+            <Terminal size={14} color="#34d399" />
+            <span>Local Python Agent</span>
+            <span style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', borderRadius: '4px', backgroundColor: '#10b981', color: '#020617', fontWeight: 700 }}>
+              npm run agent
+            </span>
+          </div>
+
           {/* Test Connection & Auto-Find Model Button */}
           <button
             type="button"
