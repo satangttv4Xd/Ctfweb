@@ -13,7 +13,6 @@ import { ModelDiscoveryModal } from './components/ModelDiscoveryModal';
 import { executeAgent } from './services/ai';
 import { buildFilesContextPrompt } from './services/fileAnalyzer';
 import { TokenGateModal } from './components/TokenGateModal';
-import { clearAuthToken } from './config/tokenConfig';
 import './App.css';
 
 const STORAGE_SETTINGS_KEY = 'ctf_swarm_settings';
@@ -22,11 +21,6 @@ const STORAGE_AGENTS_KEY = 'ctf_swarm_agents';
 export function App() {
   // Auth state for static token gate (always false on initial page load)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  const handleLogout = () => {
-    clearAuthToken();
-    setIsAuthenticated(false);
-  };
 
   // Navigation
   const [currentTab, setCurrentTab] = useState<'swarm' | 'solo' | 'prompts' | 'history'>('swarm');
@@ -462,7 +456,6 @@ export function App() {
         settings={settings}
         onToggleMockMode={handleToggleMockMode}
         isAnalyzing={isAnalyzing}
-        onLogout={handleLogout}
       />
 
       {/* Main Container */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Terminal, Settings, Database, Play, CheckCircle2, AlertCircle, Search, LogOut } from 'lucide-react';
+import { Shield, Terminal, Settings, Database, Play, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 import type { OpenRouterSettings } from '../types';
 
 interface HeaderProps {
@@ -11,7 +11,6 @@ interface HeaderProps {
   settings: OpenRouterSettings;
   onToggleMockMode: () => void;
   isAnalyzing: boolean;
-  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,8 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenDiscoveryModal,
   settings,
   onToggleMockMode,
-  isAnalyzing,
-  onLogout
+  isAnalyzing
 }) => {
   return (
     <header style={{
@@ -258,27 +256,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>ทดสอบ AI & ค้นหาโมเดล</span>
           </button>
 
-          {onLogout && (
-            <button
-              type="button"
-              onClick={onLogout}
-              className="btn-secondary"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.45rem 0.75rem',
-                fontSize: '0.8125rem',
-                borderColor: 'rgba(244, 63, 94, 0.4)',
-                backgroundColor: 'rgba(244, 63, 94, 0.1)',
-                color: '#f43f5e'
-              }}
-              title="ล็อกหน้าจอ / ออกจากระบบ"
-            >
-              <LogOut size={14} />
-              <span>ล็อกระบบ</span>
-            </button>
-          )}
 
           {isAnalyzing && (
             <div style={{
