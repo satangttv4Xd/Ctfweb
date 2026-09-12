@@ -934,6 +934,54 @@ export const FileInspector: React.FC<FileInspectorProps> = ({
                     {file.hexdump || 'ไม่มีข้อมูล Hexdump'}
                   </pre>
                 )}
+
+                {/* TAB 5: PYTHON EXECUTION LOG */}
+                {activeTab === ('python_log' as any) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      padding: '0.5rem 0.875rem',
+                      borderRadius: '0.375rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#34d399', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <Terminal size={14} />
+                        <span>ผลการรัน Python Solver Script จริง (`scripts/steg_solver.py`)</span>
+                      </div>
+                      {file.details?.pythonStdout && (
+                        <button
+                          type="button"
+                          onClick={() => handleCopyText(file.details?.pythonStdout || '')}
+                          className="btn-secondary"
+                          style={{ fontSize: '0.6875rem', padding: '0.2rem 0.5rem' }}
+                        >
+                          <Copy size={12} />
+                          <span>{copiedRawText ? 'คัดลอก Log แล้ว!' : 'คัดลอก Log'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <pre style={{
+                      margin: 0,
+                      padding: '0.875rem',
+                      backgroundColor: '#020617',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '0.375rem',
+                      color: '#34d399',
+                      fontFamily: 'var(--font-mono, monospace)',
+                      fontSize: '0.75rem',
+                      lineHeight: 1.5,
+                      overflowX: 'auto',
+                      maxHeight: '320px',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {file.details?.pythonStdout || file.pythonStdout || 'ไม่มีข้อมูล Log จาก Python Execution'}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
           </div>

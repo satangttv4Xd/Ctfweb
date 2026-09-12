@@ -69,6 +69,7 @@ export interface FileAnalysisDetails {
   endianness?: string;
   lineCount?: number;
   internalFindings?: string[];
+  pythonStdout?: string;
 }
 
 export interface AttachedFile {
@@ -90,6 +91,7 @@ export interface AttachedFile {
   details?: FileAnalysisDetails;
   imageBase64?: string;
   rawText?: string;
+  pythonStdout?: string;
 }
 
 export interface SwarmReport {

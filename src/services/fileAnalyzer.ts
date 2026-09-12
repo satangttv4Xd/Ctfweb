@@ -643,6 +643,9 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             if (data.flags && Array.isArray(data.flags)) {
               data.flags.forEach((f: string) => flagCandidates.push(f));
             }
+            if (data.stdout) {
+              details.pythonStdout = data.stdout;
+            }
           }
         } catch {
           // fallback if backend endpoint is unavailable
