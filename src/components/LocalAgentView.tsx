@@ -95,7 +95,7 @@ export const LocalAgentView: React.FC = () => {
       'echo                     for k, v in img.info.items(): >> ctf_agent_runner.py',
       'echo                         for m in re.findall(reg, str(v), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
       'echo                 if img.mode in ("RGB", "RGBA"): >> ctf_agent_runner.py',
-      'echo                     raw_pixels = list(img.getdata()) >> ctf_agent_runner.py',
+      'echo                     raw_pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata()) >> ctf_agent_runner.py',
       'echo                     num_channels = len(raw_pixels[0]) if isinstance(raw_pixels[0], (tuple, list)) else 3 >> ctf_agent_runner.py',
       'echo                     for c in range(min(num_channels, 4)): >> ctf_agent_runner.py',
       'echo                         bits = [str((p[c] if isinstance(p, (tuple, list)) else p) ^& 1) for p in raw_pixels] >> ctf_agent_runner.py',
