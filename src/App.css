@@ -1,0 +1,51 @@
+/* CTF Swarm AI Global Styles & Micro-animations */
+
+.agent-card-enter {
+  animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Monospace highlighting */
+.code-inline {
+  background-color: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8em;
+  color: #38bdf8;
+}
+
+/* Neon glow classes */
+.glow-emerald {
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+}
+
+.glow-rose {
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.25);
+}
+
+/* Range input styling */
+input[type=range] {
+  accent-color: #0284c7;
+}
+
+/* Form selects & inputs */
+select option {
+  background-color: #0b1120;
+  color: #f8fafc;
+}
