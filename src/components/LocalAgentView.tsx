@@ -82,7 +82,7 @@ export const LocalAgentView: React.FC = () => {
       'echo             text = buf.decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
       'echo             for m in re.findall(reg, text, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
       'echo             iend_pos = buf.find(b"IEND") >> ctf_agent_runner.py',
-      'echo             if iend_pos != -1 and iend_pos + 8 < len(buf): >> ctf_agent_runner.py',
+      'echo             if iend_pos != -1 and iend_pos + 8 ^< len(buf): >> ctf_agent_runner.py',
       'echo                 extra = buf[iend_pos+8:].decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
       'echo                 for m in re.findall(reg, extra, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
       'echo             try: >> ctf_agent_runner.py',
