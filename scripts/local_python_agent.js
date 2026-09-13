@@ -168,7 +168,7 @@ const server = http.createServer((req, res) => {
 
         let chosenPwd = initialPassword || password;
         if (!chosenPwd && challengeText) {
-          const m = challengeText.match(/(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)/i);
+          const m = challengeText.match(/(?:รหัส(?:ผ่าน|ชั้น[^=:\s]+)?|password(?:\s+for\s+[^=:\s]+)?|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)/i);
           if (m) chosenPwd = m[1].trim();
         }
 

@@ -48,7 +48,13 @@ export function pythonStegoPlugin(): Plugin {
 
             // Execute python steg_solver.py with optional initial password
             const pythonArgs = [scriptPath, tempFilePath];
-            const pwd = body.initialPassword || body.password;
+            let pwd = body.initialPassword || body.password;
+            if (!pwd && body.challengeText) {
+              const m = body.challengeText.match(/(?:รหัส(?:ผ่าน|ชั้น[^=:\s]+)?|password(?:\s+for\s+[^=:\s]+)?|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)/i);
+              if (m) {
+                pwd = m[1].trim();
+              }
+            }
             if (pwd) {
               pythonArgs.push(pwd);
             }

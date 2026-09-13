@@ -664,13 +664,20 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
     if (fileBase64) {
       if (category === 'image') imageBase64 = fileBase64;
 
+      // Extract initial password from options or challengeText
+      let parsedInitialPwd = options?.initialPassword;
+      if (!parsedInitialPwd && options?.challengeText) {
+        const m = options.challengeText.match(/(?:รหัส(?:ผ่าน|ชั้น[^=:\s]+)?|password(?:\s+for\s+[^=:\s]+)?|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)/i);
+        if (m) parsedInitialPwd = m[1].trim();
+      }
+
       // Try Local Machine Agent Bridge (http://localhost:7788)
       try {
         const payload = JSON.stringify({
           fileName: file.name,
           fileBase64,
           category,
-          initialPassword: options?.initialPassword,
+          initialPassword: parsedInitialPwd,
           challengeText: options?.challengeText
         });
         let localAgentRes: Response | null = null;
@@ -695,6 +702,8 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
           }
           if (data.stdout) {
             details.pythonStdout = data.stdout;
+            const stdoutMatches = data.stdout.match(/(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}/gi) || [];
+            stdoutMatches.forEach((f: string) => flagCandidates.push(f));
           }
         }
       } catch {
@@ -707,7 +716,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
               fileName: file.name,
               fileBase64,
               category,
-              initialPassword: options?.initialPassword,
+              initialPassword: parsedInitialPwd,
               challengeText: options?.challengeText
             })
           });
@@ -719,6 +728,8 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             }
             if (data.stdout) {
               details.pythonStdout = data.stdout;
+              const stdoutMatches = data.stdout.match(/(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}/gi) || [];
+              stdoutMatches.forEach((f: string) => flagCandidates.push(f));
             }
           }
         } catch {
@@ -833,7 +844,8 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
     hasFlag,
     details,
     imageBase64,
-    rawText
+    rawText,
+    rawFile: file
   };
 }
 

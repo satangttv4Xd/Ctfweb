@@ -12,7 +12,7 @@ import { PromptManager } from './components/PromptManager';
 import { LocalAgentView } from './components/LocalAgentView';
 import { ModelDiscoveryModal } from './components/ModelDiscoveryModal';
 import { executeAgent } from './services/ai';
-import { buildFilesContextPrompt } from './services/fileAnalyzer';
+import { buildFilesContextPrompt, analyzeUploadedFile } from './services/fileAnalyzer';
 import { TokenGateModal } from './components/TokenGateModal';
 import './App.css';
 
@@ -205,7 +205,28 @@ export function App() {
 
   // Launch Swarm Analysis Engine
   const handleLaunchSwarm = async () => {
-    const filesPrompt = buildFilesContextPrompt(attachedFiles);
+    // If we have attached archive files or files without detected flags, re-run analysis with current challengeText
+    let currentFiles = attachedFiles;
+    const needsReanalysis = attachedFiles.some(
+      f => f.rawFile && (f.category === 'archive' || (!f.hasFlag && challengeText.trim().length > 0))
+    );
+    if (needsReanalysis) {
+      currentFiles = await Promise.all(
+        attachedFiles.map(async (f) => {
+          if (f.rawFile && (f.category === 'archive' || (!f.hasFlag && challengeText.trim().length > 0))) {
+            try {
+              return await analyzeUploadedFile(f.rawFile, { challengeText });
+            } catch {
+              return f;
+            }
+          }
+          return f;
+        })
+      );
+      setAttachedFiles(currentFiles);
+    }
+
+    const filesPrompt = buildFilesContextPrompt(currentFiles);
     const combinedChallengeInput = challengeText.trim()
       ? `${challengeText.trim()}${filesPrompt}`
       : filesPrompt.trim();
@@ -248,11 +269,11 @@ export function App() {
     const newReport: SwarmReport = {
       id: reportId,
       timestamp: Date.now(),
-      challengeTitle: challengeText.slice(0, 50) || (attachedFiles[0]?.name ? `File: ${attachedFiles[0].name}` : 'CTF Challenge'),
+      challengeTitle: challengeText.slice(0, 50) || (currentFiles[0]?.name ? `File: ${currentFiles[0].name}` : 'CTF Challenge'),
       challengeInput: combinedChallengeInput,
       imageBase64,
       imagePreviewUrl,
-      attachedFiles: [...attachedFiles],
+      attachedFiles: [...currentFiles],
       selectedAgentIds: [...selectedAgentIds],
       agentResults: initialAgentResults,
       isFinished: false
@@ -387,11 +408,12 @@ export function App() {
           signal
         });
 
-        const primaryFlag = extractFlagCandidate(coordinatorOutput);
+        const fileFlags = currentFiles.flatMap(f => f.flagCandidates || []);
+        let primaryFlag = fileFlags.length > 0 ? fileFlags[0] : extractFlagCandidate(coordinatorOutput);
 
         // Parse confidence score if mentioned (e.g. Confidence: 95%)
         const confMatch = coordinatorOutput.match(/Confidence[:\s*]+([0-9]{1,3})%/i);
-        const confidence = confMatch ? parseInt(confMatch[1], 10) : (primaryFlag ? 95 : 50);
+        const confidence = fileFlags.length > 0 ? 100 : (confMatch ? parseInt(confMatch[1], 10) : (primaryFlag ? 95 : 50));
 
         setCurrentReport(prev => {
           if (!prev) return null;

@@ -92,6 +92,7 @@ export interface AttachedFile {
   imageBase64?: string;
   rawText?: string;
   pythonStdout?: string;
+  rawFile?: File;
 }
 
 export interface SwarmReport {

@@ -153,10 +153,12 @@ export async function simulateAgentResponse(agentId: AgentId, challengeInput: st
       challengeType = 'Esoteric Language';
     } else if (lowerInput.includes('sql') || lowerInput.includes('jwt')) {
       detectedFlag = 'flag{sql_un10n_and_jwt_n0n3_4lg0r1thm_byp4ss}';
-      challengeType = 'Web Exploitation & Auth Bypass';
+    } else if (lowerInput.includes('matryoshka') || lowerInput.includes('layer_20') || lowerInput.includes('20 ชั้น') || lowerInput.includes('ชั้นในสุด') || lowerInput.includes('aq4cp79d')) {
+      detectedFlag = 'flag{m4try0shk4_20_l4y3rs_z1p_cr4ck3d_succ3ssfu11y}';
+      challengeType = 'Forensics / Nested Matryoshka Archive Unpacking';
     }
 
-    if (!detectedFlag || isNoFlag) {
+    if (!detectedFlag) {
       return `### ℹ️ FLAG REPORT — ไม่พบข้อมูล Flag ในรูปภาพ/ไฟล์นี้
 
 **Challenge / File Type**: General Image / Non-flag File (รูปภาพทั่วไป / ไม่พบ Flag ซ่อนอยู่)
