@@ -74,7 +74,7 @@ export const ChallengeInput: React.FC<ChallengeInputProps> = ({
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const analyzed = await analyzeUploadedFile(file);
+        const analyzed = await analyzeUploadedFile(file, { challengeText });
         onAddAttachedFile(analyzed);
 
         if (analyzed.imageBase64 && !imageBase64) {

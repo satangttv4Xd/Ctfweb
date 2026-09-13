@@ -1,7 +1,22 @@
 import os
 import sys
 import re
-from PIL import Image
+
+if sys.platform == 'win32':
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+from archive_solver import solve_matryoshka_archive, is_archive_file
 
 def find_flag_in_image(image_path):
     print(f"\n==========================================")
@@ -31,19 +46,20 @@ def find_flag_in_image(image_path):
 
     # --- 2. EXIF Metadata Inspection ---
     print("\n[2/5] Inspecting EXIF Metadata & PNG Chunks...")
-    try:
-        img = Image.open(image_path)
-        print(f"  Format: {img.format}, Size: {img.size}, Mode: {img.mode}")
-        if img.info:
-            for k, v in img.info.items():
-                v_str = str(v)
-                print(f"  Metadata [{k}]: {v_str[:120]}")
-                matches = re.findall(flag_regex, v_str, re.IGNORECASE)
-                for m in matches:
-                    found_flags.add(m)
-                    print(f"  [+] EXIF Flag Found: {m}")
-    except Exception as e:
-        print(f"  PIL Warning: {e}")
+    if Image:
+        try:
+            img = Image.open(image_path)
+            print(f"  Format: {img.format}, Size: {img.size}, Mode: {img.mode}")
+            if img.info:
+                for k, v in img.info.items():
+                    v_str = str(v)
+                    print(f"  Metadata [{k}]: {v_str[:120]}")
+                    matches = re.findall(flag_regex, v_str, re.IGNORECASE)
+                    for m in matches:
+                        found_flags.add(m)
+                        print(f"  [+] EXIF Flag Found: {m}")
+        except Exception as e:
+            print(f"  PIL Warning: {e}")
 
     # --- 3. EOF Appended Data Check ---
     print("\n[3/5] Checking Appended Data (EOF Markers)...")
@@ -70,8 +86,9 @@ def find_flag_in_image(image_path):
 
     # --- 4. LSB Bit Plane Analysis (PNG / BMP Lossless formats only) ---
     print("\n[4/5] Running LSB (Least Significant Bit) Bit Plane Analysis...")
-    if image_path.lower().endswith(('.png', '.bmp')):
+    if image_path.lower().endswith(('.png', '.bmp')) and Image:
         try:
+            img = Image.open(image_path)
             if img.mode in ('RGB', 'RGBA'):
                 pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
                 for channel_idx, channel_name in enumerate(['Red', 'Green', 'Blue']):
@@ -105,5 +122,11 @@ def find_flag_in_image(image_path):
     print("==========================================\n")
 
 if __name__ == '__main__':
-    target = sys.argv[1] if len(sys.argv) > 1 else 'example/puzzle.png'
-    find_flag_in_image(target)
+    target = sys.argv[1] if len(sys.argv) > 1 else 'scratch/matryoshka.zip'
+    initial_pwd = sys.argv[2] if len(sys.argv) > 2 else 'aq4cp79d'
+
+    if is_archive_file(target):
+        solve_matryoshka_archive(target, initial_password=initial_pwd)
+    else:
+        find_flag_in_image(target)
+

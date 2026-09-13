@@ -67,7 +67,7 @@ export const SoloAgentView: React.FC<SoloAgentViewProps> = ({
     setIsProcessingFile(true);
     try {
       for (let i = 0; i < fileList.length; i++) {
-        const analyzed = await analyzeUploadedFile(fileList[i]);
+        const analyzed = await analyzeUploadedFile(fileList[i], { challengeText: inputText });
         setSoloFiles(prev => [...prev, analyzed]);
       }
     } catch (err) {

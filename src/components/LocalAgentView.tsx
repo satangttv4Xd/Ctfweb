@@ -38,6 +38,177 @@ export const LocalAgentView: React.FC = () => {
   }, []);
 
   const downloadCmdLauncher = () => {
+    const rawPy = `import http.server, socketserver, json, re, tempfile, os, sys, base64, shutil, zipfile, subprocess
+
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+
+PORT = 7788
+REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}', re.IGNORECASE)
+COMMON_PWDS = ["aq4cp79d", "", "password", "123456", "admin", "secret", "root", "flag", "ctf"]
+NOTE_NAMES = {'note.txt', 'password.txt', 'pass.txt', 'pwd.txt', 'hint.txt', 'key.txt', 'readme.txt', 'secret.txt', 'next.txt'}
+
+def solve_archive(file_path, init_pwd=None):
+    log = ["[*] CTF Recursive Nested Archive Solver Engine"]
+    found_flags = set()
+    pwds = [init_pwd] if init_pwd else []
+    for p in COMMON_PWDS:
+        if p not in pwds: pwds.append(p)
+    work_dir = tempfile.mkdtemp(prefix="ctf_unzip_")
+    curr = file_path
+    layer = 1
+    chain = []
+    while layer <= 100:
+        ldir = os.path.join(work_dir, f"layer_{layer}")
+        os.makedirs(ldir, exist_ok=True)
+        arch_name = os.path.basename(curr)
+        log.append(f"[Layer {layer}] Unpacking '{arch_name}'...")
+        success = False
+        used_p = None
+        for p in pwds:
+            try:
+                with zipfile.ZipFile(curr, 'r') as z:
+                    z.extractall(ldir, pwd=p.encode('utf-8') if p else None)
+                success = True
+                used_p = p
+                break
+            except Exception: pass
+        if not success:
+            for p in pwds:
+                cmd = ["7z", "x", curr, f"-o{ldir}", "-y"]
+                if p: cmd.append(f"-p{p}")
+                else: cmd.append("-p")
+                try:
+                    if subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                        success = True
+                        used_p = p
+                        break
+                except Exception: pass
+        if not success:
+            log.append(f"  [-] Failed to extract at Layer {layer}")
+            break
+        p_disp = f"'{used_p}'" if used_p else "None"
+        log.append(f"  [+] Layer {layer} extracted! Password used: {p_disp}")
+        if used_p: chain.append(used_p)
+        extracted_files = []
+        new_pwds = []
+        for r, _, fl in os.walk(ldir):
+            for f in fl:
+                fp = os.path.join(r, f)
+                extracted_files.append(fp)
+                try:
+                    with open(fp, 'rb') as xf: raw = xf.read()
+                    txt = raw.decode('latin-1', errors='ignore')
+                    for m in REG.findall(txt): found_flags.add(m)
+                    if f.lower() in NOTE_NAMES or f.lower().endswith('.txt'):
+                        for pat in [r'(?:password|pass|key|pwd)\\s*[:=]\\s*["\\']?([^\\s"\']+)', r'is\\s*[:=]\\s*["\\']?([^\\s"\']+)']:
+                            for match in re.findall(pat, txt, re.I):
+                                if match not in new_pwds: new_pwds.append(match)
+                        st = txt.strip()
+                        if st and len(st) <= 64 and st not in new_pwds:
+                            new_pwds.append(st)
+                except Exception: pass
+        if new_pwds:
+            log.append(f"  [KEY] Discovered next password candidates: {new_pwds}")
+            for np in reversed(new_pwds):
+                if np in pwds: pwds.remove(np)
+                pwds.insert(0, np)
+        nxt = [f for f in extracted_files if f.lower().endswith(('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar')) and f != curr]
+        if not nxt:
+            log.append(f"[+] Reached innermost layer at Layer {layer}!")
+            break
+        curr = nxt[0]
+        layer += 1
+    log.append(f"[*] Summary: Unpacked {layer} layers | Password chain: {' -> '.join(chain)}")
+    if found_flags:
+        log.append(f"[!] FLAGS DISCOVERED ({len(found_flags)}):")
+        for f in found_flags: log.append(f"  --> {f}")
+    return "\\n".join(log), found_flags
+
+class H(http.server.BaseHTTPRequestHandler):
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', '*')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.end_headers()
+    def do_GET(self):
+        if self.path in ('/health', '/'):
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"status": "ok", "agent": "CTF Swarm Python Desktop Agent v2.0 (Stego + Matryoshka ZIP)"}).encode())
+    def do_POST(self):
+        if self.path in ('/api/analyze-stego', '/api/analyze-archive', '/api/analyze-file'):
+            length = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(length).decode('utf-8'))
+            file_name = body.get('fileName', 'file')
+            b64 = body.get('fileBase64', '').split(',')[-1]
+            buf = base64.b64decode(b64)
+            found = set()
+            log_lines = []
+            init_pwd = body.get('initialPassword') or body.get('password')
+            ch_text = body.get('challengeText', '')
+            if not init_pwd and ch_text:
+                m = re.search(r'(?:รหัส|password|pass|key|pwd)\\s*[:=]?\\s*([a-zA-Z0-9_\\-!@#$%^&*+=~]+)', ch_text, re.I)
+                if m: init_pwd = m.group(1).strip()
+            ext = os.path.splitext(file_name)[1].lower()
+            if b"PK\\x03\\x04" in buf or ext in ('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar'):
+                temp_arch = tempfile.NamedTemporaryFile(delete=False, suffix=ext or '.zip')
+                temp_arch.write(buf)
+                temp_arch.close()
+                out_txt, arch_flags = solve_archive(temp_arch.name, init_pwd=init_pwd)
+                log_lines.append(out_txt)
+                found.update(arch_flags)
+                try: os.unlink(temp_arch.name)
+                except Exception: pass
+            else:
+                log_lines.append(f"[Stego Engine] Analyzing {file_name}...")
+                text = buf.decode('latin-1', errors='ignore')
+                for m in REG.findall(text): found.add(m)
+                iend_pos = buf.find(b'IEND')
+                if iend_pos != -1 and iend_pos + 8 < len(buf):
+                    for m in REG.findall(buf[iend_pos+8:].decode('latin-1', errors='ignore')): found.add(m)
+                try:
+                    from PIL import Image
+                    temp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                    temp.write(buf)
+                    temp.close()
+                    img = Image.open(temp.name)
+                    if img.info:
+                        for k, v in img.info.items():
+                            for m in REG.findall(str(v)): found.add(m)
+                    if img.mode in ('RGB', 'RGBA'):
+                        px = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
+                        for c in range(min(len(px[0]) if isinstance(px[0], (tuple, list)) else 3, 3)):
+                            bits = [str((p[c] if isinstance(p, (tuple, list)) else p) & 1) for p in px]
+                            barr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits)-7, 8)])
+                            for m in REG.findall(barr.decode('latin-1', errors='ignore')): found.add(m)
+                    os.unlink(temp.name)
+                except Exception: pass
+                if found:
+                    log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):")
+                    for f in found: log_lines.append(f"  -> {f}")
+                else: log_lines.append("[i] Result: No flag found in Stego/Metadata.")
+            self.send_response(200)
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, "stdout": "\\n".join(log_lines), "flags": list(found)}).encode())
+
+print("============================================================")
+print("  🤖 CTF SWARM DESKTOP AGENT (ONLINE http://localhost:7788)")
+print("============================================================")
+with socketserver.TCPServer(("", PORT), H) as httpd:
+    httpd.allow_reuse_address = True
+    httpd.serve_forever()
+`;
+
+    const b64Runner = btoa(unescape(encodeURIComponent(rawPy)));
     const cmdLines = [
       '@echo off',
       ':: ============================================================',
@@ -51,103 +222,19 @@ export const LocalAgentView: React.FC = () => {
       'echo   🤖 CTF SWARM DESKTOP AGENT ENGINE (RUNNING ON YOUR PC)',
       'echo ============================================================',
       'echo   Status : Ready ^& Listening on http://localhost:7788',
+      'echo   Features: Image Stego + Recursive Nested Matryoshka ZIP Engine',
       'echo   Connect: Open https://ctfweb.vercel.app/ in your browser',
       'echo ============================================================',
       'echo.',
-      ':: Create python runner script dynamically',
-      'echo import http.server, socketserver, json, re, tempfile, os, base64 > ctf_agent_runner.py',
-      'echo PORT = 7788 >> ctf_agent_runner.py',
-      'echo class H(http.server.BaseHTTPRequestHandler): >> ctf_agent_runner.py',
-      'echo     def do_OPTIONS(self): >> ctf_agent_runner.py',
-      'echo         self.send_response(204) >> ctf_agent_runner.py',
-      'echo         self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-      'echo         self.send_header("Access-Control-Allow-Methods", "*") >> ctf_agent_runner.py',
-      'echo         self.send_header("Access-Control-Allow-Headers", "*") >> ctf_agent_runner.py',
-      'echo         self.end_headers() >> ctf_agent_runner.py',
-      'echo     def do_GET(self): >> ctf_agent_runner.py',
-      'echo         if self.path == "/health": >> ctf_agent_runner.py',
-      'echo             self.send_response(200) >> ctf_agent_runner.py',
-      'echo             self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-      'echo             self.send_header("Content-Type", "application/json") >> ctf_agent_runner.py',
-      'echo             self.end_headers() >> ctf_agent_runner.py',
-      'echo             self.wfile.write(json.dumps({"status": "ok"}).encode()) >> ctf_agent_runner.py',
-      'echo     def do_POST(self): >> ctf_agent_runner.py',
-      'echo         if self.path == "/api/analyze-stego": >> ctf_agent_runner.py',
-      'echo             length = int(self.headers.get("Content-Length", 0)) >> ctf_agent_runner.py',
-      'echo             body = json.loads(self.rfile.read(length).decode("utf-8")) >> ctf_agent_runner.py',
-      'echo             category = body.get("category", "") >> ctf_agent_runner.py',
-      'echo             file_name = body.get("fileName", "file") >> ctf_agent_runner.py',
-      'echo             log_lines = [f"[Windows Desktop Agent Engine] PC Python Analysis for {file_name} ({category})"] >> ctf_agent_runner.py',
-      'echo             b64 = body.get("fileBase64", "").split(",")[-1] >> ctf_agent_runner.py',
-      'echo             buf = base64.b64decode(b64) >> ctf_agent_runner.py',
-      'echo             found = set() >> ctf_agent_runner.py',
-      'echo             reg = r"(flag\\{[A-Za-z0-9_\\-]{3,80}\\}|ctf\\{[A-Za-z0-9_\\-]{3,80}\\}|ELEC\\{[A-Za-z0-9_\\-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-]{3,80}\\})" >> ctf_agent_runner.py',
-      'echo             text = buf.decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
-      'echo             for m in re.findall(reg, text, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo             if category in ("pcap", "pcapng") or file_name.lower().endswith((".pcap", ".pcapng")): >> ctf_agent_runner.py',
-      'echo                 try: >> ctf_agent_runner.py',
-      'echo                     ips = set(re.findall(r"\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\b", text)) >> ctf_agent_runner.py',
-      'echo                     urls = set(re.findall(r"https?://[a-zA-Z0-9\\.\\-_/:]+", text)) >> ctf_agent_runner.py',
-      'echo                     log_lines.append(f"  [PCAP Engine] Extracted {len(ips)} IPs, {len(urls)} HTTP Endpoints") >> ctf_agent_runner.py',
-      'echo                     for u in list(urls)[:5]: log_lines.append(f"    * URL: {u}") >> ctf_agent_runner.py',
-      'echo                 except Exception as e: log_lines.append(f"  [PCAP Error]: {e}") >> ctf_agent_runner.py',
-      'echo             if b"PK\\x03\\x04" in buf or b"PK\\x01\\x02" in buf or category in ("apk", "archive") or file_name.lower().endswith((".apk", ".zip", ".jar")): >> ctf_agent_runner.py',
-      'echo                 try: >> ctf_agent_runner.py',
-      'echo                     import zipfile, io >> ctf_agent_runner.py',
-      'echo                     pk_pos = buf.find(b"PK\\x03\\x04") >> ctf_agent_runner.py',
-      'echo                     zip_data = buf[pk_pos:] if pk_pos != -1 else buf >> ctf_agent_runner.py',
-      'echo                     with zipfile.ZipFile(io.BytesIO(zip_data)) as z: >> ctf_agent_runner.py',
-      'echo                         namelist = z.namelist() >> ctf_agent_runner.py',
-      'echo                         log_lines.append(f"  [Carving/Archive Engine] Discovered embedded ZIP! Extracted {len(namelist)} files: {namelist[:5]}") >> ctf_agent_runner.py',
-      'echo                         for fname in namelist: >> ctf_agent_runner.py',
-      'echo                             for m in re.findall(reg, fname, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo                             try: >> ctf_agent_runner.py',
-      'echo                                 zcontent = z.read(fname).decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
-      'echo                                 for m in re.findall(reg, zcontent, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo                             except Exception: pass >> ctf_agent_runner.py',
-      'echo                 except Exception as e: log_lines.append(f"  [Zip/Carving Info]: {e}") >> ctf_agent_runner.py',
-      'echo             iend_pos = buf.find(b"IEND") >> ctf_agent_runner.py',
-      'echo             if iend_pos != -1 and iend_pos + 8 ^< len(buf): >> ctf_agent_runner.py',
-      'echo                 extra = buf[iend_pos+8:].decode("latin-1", errors="ignore") >> ctf_agent_runner.py',
-      'echo                 for m in re.findall(reg, extra, re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo             try: >> ctf_agent_runner.py',
-      'echo                 from PIL import Image >> ctf_agent_runner.py',
-      'echo                 temp = tempfile.NamedTemporaryFile(delete=False, suffix=".png") >> ctf_agent_runner.py',
-      'echo                 temp.write(buf) >> ctf_agent_runner.py',
-      'echo                 temp.close() >> ctf_agent_runner.py',
-      'echo                 img = Image.open(temp.name) >> ctf_agent_runner.py',
-      'echo                 if img.info: >> ctf_agent_runner.py',
-      'echo                     for k, v in img.info.items(): >> ctf_agent_runner.py',
-      'echo                         for m in re.findall(reg, str(v), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo                 if img.mode in ("RGB", "RGBA"): >> ctf_agent_runner.py',
-      'echo                     raw_pixels = list(img.get_flattened_data() if hasattr(img, "get_flattened_data") else img.getdata()) >> ctf_agent_runner.py',
-      'echo                     num_channels = len(raw_pixels[0]) if isinstance(raw_pixels[0], (tuple, list)) else 3 >> ctf_agent_runner.py',
-      'echo                     for c in range(min(num_channels, 4)): >> ctf_agent_runner.py',
-      'echo                         bits = [str((p[c] if isinstance(p, (tuple, list)) else p) ^& 1) for p in raw_pixels] >> ctf_agent_runner.py',
-      'echo                         byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits)-7, 8)]) >> ctf_agent_runner.py',
-      'echo                         for m in re.findall(reg, byte_arr.decode("latin-1", errors="ignore"), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo                     all_bits = [] >> ctf_agent_runner.py',
-      'echo                     for p in raw_pixels: >> ctf_agent_runner.py',
-      'echo                         for c in range(min(len(p) if isinstance(p, (tuple, list)) else 1, 3)): >> ctf_agent_runner.py',
-      'echo                             all_bits.append(str((p[c] if isinstance(p, (tuple, list)) else p) ^& 1)) >> ctf_agent_runner.py',
-      'echo                     comb_bytes = bytearray([int("".join(all_bits[i:i+8]), 2) for i in range(0, len(all_bits)-7, 8)]) >> ctf_agent_runner.py',
-      'echo                     for m in re.findall(reg, comb_bytes.decode("latin-1", errors="ignore"), re.IGNORECASE): found.add(m) >> ctf_agent_runner.py',
-      'echo                 os.unlink(temp.name) >> ctf_agent_runner.py',
-      'echo             except Exception: pass >> ctf_agent_runner.py',
-      'echo             if found: >> ctf_agent_runner.py',
-      'echo                 log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):") >> ctf_agent_runner.py',
-      'echo                 for f in found: log_lines.append(f"  -> {f}") >> ctf_agent_runner.py',
-      'echo             else: log_lines.append("[i] Result: No flag pattern string detected.") >> ctf_agent_runner.py',
-      'echo             self.send_response(200) >> ctf_agent_runner.py',
-      'echo             self.send_header("Access-Control-Allow-Origin", "*") >> ctf_agent_runner.py',
-      'echo             self.send_header("Content-Type", "application/json") >> ctf_agent_runner.py',
-      'echo             self.end_headers() >> ctf_agent_runner.py',
-      'echo             self.wfile.write(json.dumps({"success": True, "stdout": "\\n".join(log_lines), "flags": list(found)}).encode()) >> ctf_agent_runner.py',
-      'echo print("============================================================") >> ctf_agent_runner.py',
-      'echo print("  🤖 CTF SWARM LOCAL AGENT RUNNING (http://localhost:7788)") >> ctf_agent_runner.py',
-      'echo print("============================================================") >> ctf_agent_runner.py',
-      'echo with socketserver.TCPServer(("", PORT), H) as httpd: httpd.serve_forever() >> ctf_agent_runner.py',
-      'echo. ',
+      ':: Extract python runner script from base64 to avoid cmd escaping issues',
+      `python -c "import base64; open('ctf_agent_runner.py', 'wb').write(base64.b64decode('${b64Runner}'))"`,
+      'if not exist ctf_agent_runner.py (',
+      '    echo [!] Error: Python was not found on your system PATH.',
+      '    echo Please install Python 3.10+ from https://www.python.org/',
+      '    pause',
+      '    exit /b 1',
+      ')',
+      'echo [!] Starting Python Agent Server on port 7788...',
       'python ctf_agent_runner.py',
       'pause'
     ];
@@ -161,9 +248,89 @@ export const LocalAgentView: React.FC = () => {
   };
 
   const copyScriptToClipboard = () => {
-    const rawPy = `import http.server, socketserver, json, re, tempfile, os, base64
+    const rawPy = `import http.server, socketserver, json, re, tempfile, os, sys, base64, shutil, zipfile, subprocess
 
 PORT = 7788
+REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}', re.IGNORECASE)
+COMMON_PWDS = ["aq4cp79d", "", "password", "123456", "admin", "secret", "root", "flag", "ctf"]
+NOTE_NAMES = {'note.txt', 'password.txt', 'pass.txt', 'pwd.txt', 'hint.txt', 'key.txt', 'readme.txt', 'secret.txt', 'next.txt'}
+
+def solve_archive(file_path, init_pwd=None):
+    log = ["[*] CTF Recursive Nested Archive Solver Engine"]
+    found_flags = set()
+    pwds = [init_pwd] if init_pwd else []
+    for p in COMMON_PWDS:
+        if p not in pwds: pwds.append(p)
+    work_dir = tempfile.mkdtemp(prefix="ctf_unzip_")
+    curr = file_path
+    layer = 1
+    chain = []
+    while layer <= 100:
+        ldir = os.path.join(work_dir, f"layer_{layer}")
+        os.makedirs(ldir, exist_ok=True)
+        arch_name = os.path.basename(curr)
+        log.append(f"[Layer {layer}] Unpacking '{arch_name}'...")
+        success = False
+        used_p = None
+        for p in pwds:
+            try:
+                with zipfile.ZipFile(curr, 'r') as z:
+                    z.extractall(ldir, pwd=p.encode('utf-8') if p else None)
+                success = True
+                used_p = p
+                break
+            except Exception: pass
+        if not success:
+            for p in pwds:
+                cmd = ["7z", "x", curr, f"-o{ldir}", "-y"]
+                if p: cmd.append(f"-p{p}")
+                else: cmd.append("-p")
+                try:
+                    if subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                        success = True
+                        used_p = p
+                        break
+                except Exception: pass
+        if not success:
+            log.append(f"  [-] Failed to extract at Layer {layer}")
+            break
+        p_disp = f"'{used_p}'" if used_p else "None"
+        log.append(f"  [+] Layer {layer} extracted! Password used: {p_disp}")
+        if used_p: chain.append(used_p)
+        extracted_files = []
+        new_pwds = []
+        for r, _, fl in os.walk(ldir):
+            for f in fl:
+                fp = os.path.join(r, f)
+                extracted_files.append(fp)
+                try:
+                    with open(fp, 'rb') as xf: raw = xf.read()
+                    txt = raw.decode('latin-1', errors='ignore')
+                    for m in REG.findall(txt): found_flags.add(m)
+                    if f.lower() in NOTE_NAMES or f.lower().endswith('.txt'):
+                        for pat in [r'(?:password|pass|key|pwd)\s*[:=]\s*["\']?([^\s"\']+)', r'is\s*[:=]\s*["\']?([^\s"\']+)']:
+                            for match in re.findall(pat, txt, re.I):
+                                if match not in new_pwds: new_pwds.append(match)
+                        st = txt.strip()
+                        if st and len(st) <= 64 and st not in new_pwds:
+                            new_pwds.append(st)
+                except Exception: pass
+        if new_pwds:
+            log.append(f"  [KEY] Discovered next password candidates: {new_pwds}")
+            for np in reversed(new_pwds):
+                if np in pwds: pwds.remove(np)
+                pwds.insert(0, np)
+        nxt = [f for f in extracted_files if f.lower().endswith(('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar')) and f != curr]
+        if not nxt:
+            log.append(f"[+] Reached innermost layer at Layer {layer}!")
+            break
+        curr = nxt[0]
+        layer += 1
+    log.append(f"[*] Summary: Unpacked {layer} layers | Password chain: {' -> '.join(chain)}")
+    if found_flags:
+        log.append(f"[!] FLAGS DISCOVERED ({len(found_flags)}):")
+        for f in found_flags: log.append(f"  --> {f}")
+    return "\\n".join(log), found_flags
 
 class H(http.server.BaseHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -172,74 +339,76 @@ class H(http.server.BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Methods', '*')
         self.send_header('Access-Control-Allow-Headers', '*')
         self.end_headers()
-
     def do_GET(self):
-        if self.path == '/health':
+        if self.path in ('/health', '/'):
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "ok"}).encode())
-
+            self.wfile.write(json.dumps({"status": "ok", "agent": "CTF Swarm Python Desktop Agent v2.0"}).encode())
     def do_POST(self):
-        if self.path == '/api/analyze-stego':
+        if self.path in ('/api/analyze-stego', '/api/analyze-archive', '/api/analyze-file'):
             length = int(self.headers.get('Content-Length', 0))
             body = json.loads(self.rfile.read(length).decode('utf-8'))
+            file_name = body.get('fileName', 'file')
             b64 = body.get('fileBase64', '').split(',')[-1]
             buf = base64.b64decode(b64)
             found = set()
-            reg = r"(flag\\{[A-Za-z0-9_-]{3,80}\\}|ctf\\{[A-Za-z0-9_-]{3,80}\\}|ELEC\\{[A-Za-z0-9_-]{3,80}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_-]{3,80}\\})"
-            text = buf.decode('latin-1', errors='ignore')
-            for m in re.findall(reg, text, re.IGNORECASE): found.add(m)
-            iend_pos = buf.find(b'IEND')
-            if iend_pos != -1 and iend_pos + 8 < len(buf):
-                extra = buf[iend_pos+8:].decode('latin-1', errors='ignore')
-                for m in re.findall(reg, extra, re.IGNORECASE): found.add(m)
-            try:
-                from PIL import Image
-                temp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-                temp.write(buf)
-                temp.close()
-                img = Image.open(temp.name)
-                if img.info:
-                    for k, v in img.info.items():
-                        for m in re.findall(reg, str(v), re.IGNORECASE): found.add(m)
-                if img.mode in ('RGB', 'RGBA'):
-                    raw_pixels = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
-                    num_channels = len(raw_pixels[0]) if isinstance(raw_pixels[0], (tuple, list)) else 3
-                    for c in range(min(num_channels, 4)):
-                        bits = [str((p[c] if isinstance(p, (tuple, list)) else p) & 1) for p in raw_pixels]
-                        byte_arr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits)-7, 8)])
-                        for m in re.findall(reg, byte_arr.decode('latin-1', errors='ignore'), re.IGNORECASE): found.add(m)
-                    all_bits = []
-                    for p in raw_pixels:
-                        for c in range(min(len(p) if isinstance(p, (tuple, list)) else 1, 3)):
-                            all_bits.append(str((p[c] if isinstance(p, (tuple, list)) else p) & 1))
-                    comb_bytes = bytearray([int("".join(all_bits[i:i+8]), 2) for i in range(0, len(all_bits)-7, 8)])
-                    for m in re.findall(reg, comb_bytes.decode('latin-1', errors='ignore'), re.IGNORECASE): found.add(m)
-                os.unlink(temp.name)
-            except Exception: pass
-
-            log_lines = ["[Windows Desktop Agent Engine] PC Python Analysis Finished."]
-            if found:
-                log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):")
-                for f in found: log_lines.append(f"  -> {f}")
-            else: log_lines.append("[i] Result: No flag pattern string detected in LSB/Metadata.")
-
+            log_lines = []
+            init_pwd = body.get('initialPassword') or body.get('password')
+            ch_text = body.get('challengeText', '')
+            if not init_pwd and ch_text:
+                m = re.search(r'(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)', ch_text, re.I)
+                if m: init_pwd = m.group(1).strip()
+            ext = os.path.splitext(file_name)[1].lower()
+            if b"PK\\x03\\x04" in buf or ext in ('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar'):
+                temp_arch = tempfile.NamedTemporaryFile(delete=False, suffix=ext or '.zip')
+                temp_arch.write(buf)
+                temp_arch.close()
+                out_txt, arch_flags = solve_archive(temp_arch.name, init_pwd=init_pwd)
+                log_lines.append(out_txt)
+                found.update(arch_flags)
+                try: os.unlink(temp_arch.name)
+                except Exception: pass
+            else:
+                log_lines.append(f"[Stego Engine] Analyzing {file_name}...")
+                text = buf.decode('latin-1', errors='ignore')
+                for m in REG.findall(text): found.add(m)
+                iend_pos = buf.find(b'IEND')
+                if iend_pos != -1 and iend_pos + 8 < len(buf):
+                    for m in REG.findall(buf[iend_pos+8:].decode('latin-1', errors='ignore')): found.add(m)
+                try:
+                    from PIL import Image
+                    temp = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+                    temp.write(buf)
+                    temp.close()
+                    img = Image.open(temp.name)
+                    if img.info:
+                        for k, v in img.info.items():
+                            for m in REG.findall(str(v)): found.add(m)
+                    if img.mode in ('RGB', 'RGBA'):
+                        px = list(img.get_flattened_data() if hasattr(img, 'get_flattened_data') else img.getdata())
+                        for c in range(min(len(px[0]) if isinstance(px[0], (tuple, list)) else 3, 3)):
+                            bits = [str((p[c] if isinstance(p, (tuple, list)) else p) & 1) for p in px]
+                            barr = bytearray([int("".join(bits[i:i+8]), 2) for i in range(0, len(bits)-7, 8)])
+                            for m in REG.findall(barr.decode('latin-1', errors='ignore')): found.add(m)
+                    os.unlink(temp.name)
+                except Exception: pass
+                if found:
+                    log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):")
+                    for f in found: log_lines.append(f"  -> {f}")
+                else: log_lines.append("[i] Result: No flag found in Stego/Metadata.")
             self.send_response(200)
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({
-                "success": True,
-                "stdout": "\n".join(log_lines),
-                "flags": list(found)
-            }).encode())
+            self.wfile.write(json.dumps({"success": True, "stdout": "\\n".join(log_lines), "flags": list(found)}).encode())
 
 print("============================================================")
-print("  🤖 CTF SWARM LOCAL AGENT RUNNING (http://localhost:7788)")
+print("  🤖 CTF SWARM DESKTOP AGENT (ONLINE http://localhost:7788)")
 print("============================================================")
 with socketserver.TCPServer(("", PORT), H) as httpd:
+    httpd.allow_reuse_address = True
     httpd.serve_forever()
 `;
     navigator.clipboard.writeText(rawPy);
@@ -589,11 +758,10 @@ with socketserver.TCPServer(("", PORT), H) as httpd:
           maxHeight: '220px',
           fontFamily: 'var(--font-mono, monospace)'
         }}>
-{`import http.server, socketserver, json, re, tempfile, os, base64
-
-PORT = 7788
-# Run this script with: python script.py
-# Server will start listening on http://localhost:7788`}
+{`# CTF Swarm Local Agent Engine (Stego + Recursive Matryoshka ZIP Solver)
+# Run directly with: python scripts/local_python_agent.py (or npm run agent)
+# Or CLI single file: python scripts/archive_solver.py matryoshka.zip aq4cp79d
+# Server listens on http://localhost:7788`}
         </pre>
       </div>
     </div>

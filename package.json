@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "gen-token": "node scripts/generate-token.js",
     "gen-token:satang": "node scripts/generate-token.js satang",
-    "agent": "node scripts/local_python_agent.js"
+    "agent": "node scripts/local_python_agent.js",
+    "agent:py": "python scripts/local_python_agent.py"
   },
   "dependencies": {
     "lucide-react": "^1.45.0",

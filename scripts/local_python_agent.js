@@ -121,15 +121,21 @@ if __name__ == '__main__':
     find_flag_in_image(target)
 `;
 
-// Save embedded Python script to temp directory if not present
-const tempScriptPath = path.join(os.tmpdir(), 'ctf_swarm_steg_solver.py');
-fs.writeFileSync(tempScriptPath, PYTHON_STEGO_SOLVER_CODE);
+// Locate steg_solver.py in current directory or fallback
+const localScriptPath = path.join(__dirname, 'steg_solver.py');
+const tempScriptPath = fs.existsSync(localScriptPath)
+  ? localScriptPath
+  : path.join(os.tmpdir(), 'ctf_swarm_steg_solver.py');
+
+if (!fs.existsSync(localScriptPath) && !fs.existsSync(tempScriptPath)) {
+  fs.writeFileSync(tempScriptPath, PYTHON_STEGO_SOLVER_CODE);
+}
 
 const server = http.createServer((req, res) => {
   // Allow Vercel Web app to connect
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -137,19 +143,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.url === '/health' && req.method === 'GET') {
+  if ((req.url === '/health' || req.url === '/') && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', agent: 'CTF Swarm Standalone Desktop Agent v1.0' }));
+    res.end(JSON.stringify({
+      status: 'ok',
+      agent: 'CTF Swarm Desktop Agent Engine v2.0 (Stego + Recursive ZIP Solver)'
+    }));
     return;
   }
 
-  if (req.url === '/api/analyze-stego' && req.method === 'POST') {
-    let bodyChunks: Buffer[] = [];
+  if ((req.url === '/api/analyze-stego' || req.url === '/api/analyze-archive' || req.url === '/api/analyze-file') && req.method === 'POST') {
+    let bodyChunks = [];
     req.on('data', chunk => bodyChunks.push(chunk));
     req.on('end', () => {
       try {
         const body = JSON.parse(Buffer.concat(bodyChunks).toString());
-        const { fileName, fileBase64 } = body;
+        const { fileName, fileBase64, initialPassword, password, challengeText } = body;
 
         if (!fileBase64) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -157,13 +166,24 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        let chosenPwd = initialPassword || password;
+        if (!chosenPwd && challengeText) {
+          const m = challengeText.match(/(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)/i);
+          if (m) chosenPwd = m[1].trim();
+        }
+
         const base64Data = fileBase64.replace(/^data:[^;]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
-        const tempFilePath = path.join(os.tmpdir(), `stego_upload_${Date.now()}_${fileName || 'file.png'}`);
+        const ext = path.extname(fileName || 'file') || (buffer.slice(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) ? '.zip' : '.png');
+        const tempFilePath = path.join(os.tmpdir(), `ctf_upload_${Date.now()}_${path.basename(fileName || 'file', ext)}${ext}`);
         fs.writeFileSync(tempFilePath, buffer);
 
-        // Run python with embedded solver
-        const pythonProcess = spawn('python', [tempScriptPath, tempFilePath]);
+        // Run python with solver
+        const pythonArgs = [tempScriptPath, tempFilePath];
+        if (chosenPwd) {
+          pythonArgs.push(chosenPwd);
+        }
+        const pythonProcess = spawn('python', pythonArgs);
 
         let stdoutData = '';
         let stderrData = '';
@@ -196,11 +216,11 @@ const server = http.createServer((req, res) => {
             stdout: stdoutData,
             stderr: stderrData,
             flags: uniqueFlags,
-            agentSource: 'Standalone User Machine Python Agent'
+            agentSource: 'Standalone User Machine Python Agent (Stego + Recursive ZIP Engine)'
           }));
         });
 
-      } catch (err: unknown) {
+      } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: msg }));
@@ -219,11 +239,12 @@ server.listen(PORT, () => {
   🤖 CTF SWARM STANDALONE DESKTOP AGENT (ONLINE)
 ============================================================
   🌐 Bridge Status : Connected & Listening on http://localhost:${PORT}
-  ⚡ Engine Status : Ready to run Python Stego Solvers on your PC!
+  ⚡ Engine Status : Ready to run Stego & Recursive ZIP Solvers!
   
   👉 Open https://ctfweb.vercel.app/ in your browser.
-  The web app will automatically route image steganography tasks 
-  to run on YOUR COMPUTER'S PYTHON ENGINE!
+  The web app will automatically route image steganography and
+  nested zip archives to run on YOUR COMPUTER'S PYTHON ENGINE!
 ============================================================
 `);
 });
+

@@ -39,14 +39,21 @@ export function pythonStegoPlugin(): Plugin {
 
             // Save to temp file
             const tempDir = os.tmpdir();
-            const ext = path.extname(fileName || 'file.png') || '.png';
+            const isZip = buffer.length >= 4 && buffer[0] === 0x50 && buffer[1] === 0x4b && buffer[2] === 0x03 && buffer[3] === 0x04;
+            const ext = path.extname(fileName || '') || (isZip ? '.zip' : '.png');
             const tempFilePath = path.join(tempDir, `stego_upload_${Date.now()}${ext}`);
             fs.writeFileSync(tempFilePath, buffer);
 
             const scriptPath = path.resolve(process.cwd(), 'scripts', 'steg_solver.py');
 
-            // Execute python steg_solver.py
-            const pythonProcess = spawn('python', [scriptPath, tempFilePath]);
+            // Execute python steg_solver.py with optional initial password
+            const pythonArgs = [scriptPath, tempFilePath];
+            const pwd = body.initialPassword || body.password;
+            if (pwd) {
+              pythonArgs.push(pwd);
+            }
+            const pythonProcess = spawn('python', pythonArgs);
+
 
             let stdoutData = '';
             let stderrData = '';

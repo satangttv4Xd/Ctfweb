@@ -468,7 +468,10 @@ export function parseElfHeader(bytes: Uint8Array): {
 /**
  * Main Analyzer function: processes an uploaded File object and returns rich metadata
  */
-export async function analyzeUploadedFile(file: File): Promise<AttachedFile> {
+export async function analyzeUploadedFile(
+  file: File,
+  options?: { initialPassword?: string; challengeText?: string }
+): Promise<AttachedFile> {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   const sha256 = await computeSha256(buffer);
@@ -669,7 +672,9 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
           body: JSON.stringify({
             fileName: file.name,
             fileBase64,
-            category
+            category,
+            initialPassword: options?.initialPassword,
+            challengeText: options?.challengeText
           })
         });
 
@@ -691,7 +696,9 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
             body: JSON.stringify({
               fileName: file.name,
               fileBase64,
-              category
+              category,
+              initialPassword: options?.initialPassword,
+              challengeText: options?.challengeText
             })
           });
 
@@ -712,6 +719,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
   } catch {
     // ignore
   }
+
 
     // Fallback: Client-side Canvas LSB Bit-plane Analysis
     if (flagCandidates.length === 0 && imageBase64 && typeof window !== 'undefined' && typeof document !== 'undefined') {
