@@ -47,7 +47,7 @@ if sys.platform == 'win32':
     except Exception: pass
 
 PORT = 7788
-REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}|[a-zA-Z0-9_-]{3,15}\\{[A-Za-z0-9_\\-!@#$%^&*()+=~]{3,100}\\}', re.IGNORECASE)
+REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\\}|[a-zA-Z0-9_-]{3,15}\\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\\}', re.IGNORECASE)
 COMMON_PWDS = ["aq4cp79d", "", "password", "123456", "admin", "secret", "root", "flag", "ctf"]
 NOTE_NAMES = {'note.txt', 'password.txt', 'pass.txt', 'pwd.txt', 'hint.txt', 'key.txt', 'readme.txt', 'secret.txt', 'next.txt'}
 
@@ -155,7 +155,7 @@ class H(http.server.BaseHTTPRequestHandler):
             init_pwd = body.get('initialPassword') or body.get('password')
             ch_text = body.get('challengeText', '')
             if not init_pwd and ch_text:
-                m = re.search(r'(?:รหัส|password|pass|key|pwd)\\s*[:=]?\\s*([a-zA-Z0-9_\\-!@#$%^&*+=~]+)', ch_text, re.I)
+                m = re.search(r'(?:รหัส|password|pass|key|pwd)\\s*[:=]?\\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)', ch_text, re.I)
                 if m: init_pwd = m.group(1).strip()
             ext = os.path.splitext(file_name)[1].lower()
             if b"PK\\x03\\x04" in buf or ext in ('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar'):
@@ -258,7 +258,7 @@ if sys.platform == 'win32':
     except Exception: pass
 
 PORT = 7788
-REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}', re.IGNORECASE)
+REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}', re.IGNORECASE)
 COMMON_PWDS = ["aq4cp79d", "", "password", "123456", "admin", "secret", "root", "flag", "ctf"]
 NOTE_NAMES = {'note.txt', 'password.txt', 'pass.txt', 'pwd.txt', 'hint.txt', 'key.txt', 'readme.txt', 'secret.txt', 'next.txt'}
 
@@ -366,7 +366,7 @@ class H(http.server.BaseHTTPRequestHandler):
             init_pwd = body.get('initialPassword') or body.get('password')
             ch_text = body.get('challengeText', '')
             if not init_pwd and ch_text:
-                m = re.search(r'(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)', ch_text, re.I)
+                m = re.search(r'(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)', ch_text, re.I)
                 if m: init_pwd = m.group(1).strip()
             ext = os.path.splitext(file_name)[1].lower()
             if b"PK\\x03\\x04" in buf or ext in ('.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar'):

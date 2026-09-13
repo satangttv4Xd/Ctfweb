@@ -21,7 +21,7 @@ if sys.platform == 'win32':
         pass
 
 FLAG_REGEX = re.compile(
-    r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}',
+    r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[a-zA-Z0-9_!@#$%^&*()+=~-]{3,100}\}',
     re.IGNORECASE
 )
 
@@ -204,9 +204,9 @@ def extract_password_from_text(content: str) -> List[str]:
     
     # 1. Look for explicit password prefix patterns like "Password for next layer: abc123"
     patterns = [
-        r'(?:password|pass|pwd|key|code|secret)(?:\s+for\s+[a-z0-9_\s]+)?\s*[:=]\s*["\']?([A-Za-z0-9_\-!@#$%^&*+=~]+)',
-        r'is\s*[:=]\s*["\']?([A-Za-z0-9_\-!@#$%^&*+=~]+)',
-        r'next\s*[:=]\s*["\']?([A-Za-z0-9_\-!@#$%^&*+=~]+)'
+        r'(?:password|pass|pwd|key|code|secret)(?:\s+for\s+[a-z0-9_\s]+)?\s*[:=]\s*["\']?([a-zA-Z0-9_!@#$%^&*()+=~-]+)',
+        r'is\s*[:=]\s*["\']?([a-zA-Z0-9_!@#$%^&*()+=~-]+)',
+        r'next\s*[:=]\s*["\']?([a-zA-Z0-9_!@#$%^&*()+=~-]+)'
     ]
     for p in patterns:
         matches = re.findall(p, content, re.IGNORECASE)

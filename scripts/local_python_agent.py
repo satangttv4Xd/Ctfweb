@@ -76,7 +76,7 @@ class CTFAgentHandler(http.server.BaseHTTPRequestHandler):
 
                 # If initial_pwd not explicitly given, try extracting clues from challengeText
                 if not initial_pwd and challenge_text:
-                    pwd_match = re.search(r'(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_\-!@#$%^&*+=~]+)', challenge_text, re.IGNORECASE)
+                    pwd_match = re.search(r'(?:รหัส|password|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)', challenge_text, re.IGNORECASE)
                     if pwd_match:
                         initial_pwd = pwd_match.group(1).strip()
 
