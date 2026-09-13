@@ -27,12 +27,20 @@ export const Header: React.FC<HeaderProps> = ({
 
   React.useEffect(() => {
     const check = async () => {
-      try {
-        const res = await fetch('http://localhost:7788/health', { cache: 'no-store' });
-        setAgentConnected(res.ok);
-      } catch {
-        setAgentConnected(false);
-      }
+      const tryPing = async (url: string) => {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 1500);
+        try {
+          const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+          return res.ok;
+        } catch {
+          return false;
+        } finally {
+          clearTimeout(tid);
+        }
+      };
+      const ok = (await tryPing('http://127.0.0.1:7788/health')) || (await tryPing('http://localhost:7788/health'));
+      setAgentConnected(ok);
     };
     check();
     const interval = setInterval(check, 3000);

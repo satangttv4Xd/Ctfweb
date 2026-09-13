@@ -1,4 +1,4 @@
-import http.server, socketserver, json, re, tempfile, os, sys, base64, shutil, zipfile, subprocess
+import http.server, socketserver, socket, json, re, tempfile, os, sys, base64, shutil, zipfile, subprocess
 
 if sys.platform == 'win32':
     try:
@@ -89,20 +89,35 @@ def solve_archive(file_path, init_pwd=None):
         for f in found_flags: log.append(f"  --> {f}")
     return "\\n".join(log), found_flags
 
+class ThreadingServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
 class H(http.server.BaseHTTPRequestHandler):
+    def log_message(self, format, *args): pass
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        super().end_headers()
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', '*')
-        self.send_header('Access-Control-Allow-Headers', '*')
+        self.send_header('Content-Length', '0')
         self.end_headers()
     def do_GET(self):
         if self.path in ('/health', '/'):
+            resp = json.dumps({"status": "ok", "agent": "CTF Swarm Python Desktop Agent v2.0 (Stego + Matryoshka ZIP)"}).encode('utf-8')
             self.send_response(200)
-            self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(resp)))
+            self.send_header('Connection', 'close')
             self.end_headers()
-            self.wfile.write(json.dumps({"status": "ok", "agent": "CTF Swarm Python Desktop Agent v2.0 (Stego + Matryoshka ZIP)"}).encode())
+            self.wfile.write(resp)
+        else:
+            self.send_response(404)
+            self.send_header('Content-Length', '0')
+            self.end_headers()
     def do_POST(self):
         if self.path in ('/api/analyze-stego', '/api/analyze-archive', '/api/analyze-file'):
             length = int(self.headers.get('Content-Length', 0))
@@ -155,15 +170,33 @@ class H(http.server.BaseHTTPRequestHandler):
                     log_lines.append(f"[!] FLAGS DISCOVERED ({len(found)}):")
                     for f in found: log_lines.append(f"  -> {f}")
                 else: log_lines.append("[i] Result: No flag found in Stego/Metadata.")
+            resp = json.dumps({"success": True, "stdout": "\\n".join(log_lines), "flags": list(found)}).encode('utf-8')
             self.send_response(200)
-            self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(resp)))
+            self.send_header('Connection', 'close')
             self.end_headers()
-            self.wfile.write(json.dumps({"success": True, "stdout": "\\n".join(log_lines), "flags": list(found)}).encode())
+            self.wfile.write(resp)
+
+try:
+    class DualStackServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        address_family = getattr(socket, 'AF_INET6', socket.AF_INET)
+        daemon_threads = True
+        allow_reuse_address = True
+        def server_bind(self):
+            try:
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            except Exception: pass
+            super().server_bind()
+    httpd = DualStackServer(("", PORT), H)
+except Exception:
+    httpd = ThreadingServer(("", PORT), H)
 
 print("============================================================")
 print("  🤖 CTF SWARM DESKTOP AGENT (ONLINE http://localhost:7788)")
 print("============================================================")
-with socketserver.TCPServer(("", PORT), H) as httpd:
-    httpd.allow_reuse_address = True
+print("[✓] Server is active and listening on port 7788.")
+print("[i] Keep this window OPEN while using CTF Swarm in your browser.")
+print("[*] Ready for incoming CTF challenges & files...")
+with httpd:
     httpd.serve_forever()

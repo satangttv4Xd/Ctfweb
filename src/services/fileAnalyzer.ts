@@ -666,17 +666,27 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
 
       // Try Local Machine Agent Bridge (http://localhost:7788)
       try {
-        const localAgentRes = await fetch('http://localhost:7788/api/analyze-stego', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileBase64,
-            category,
-            initialPassword: options?.initialPassword,
-            challengeText: options?.challengeText
-          })
+        const payload = JSON.stringify({
+          fileName: file.name,
+          fileBase64,
+          category,
+          initialPassword: options?.initialPassword,
+          challengeText: options?.challengeText
         });
+        let localAgentRes: Response | null = null;
+        try {
+          localAgentRes = await fetch('http://127.0.0.1:7788/api/analyze-stego', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+          });
+        } catch {
+          localAgentRes = await fetch('http://localhost:7788/api/analyze-stego', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload
+          });
+        }
 
         if (localAgentRes.ok) {
           const data = await localAgentRes.json();

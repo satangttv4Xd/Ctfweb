@@ -27,39 +27,48 @@ if current_dir not in sys.path:
 from archive_solver import solve_matryoshka_archive, is_archive_file, FLAG_REGEX
 from steg_solver import find_flag_in_image
 
+import socket
+
 PORT = 7788
 
 class CTFAgentHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
-        # Clean logging format
-        sys.stderr.write(f"[{self.log_date_time_string()}] {args[0]} {args[1]} {args[2]}\n")
+        pass
+
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', '*')
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        super().end_headers()
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        self.send_header('Content-Length', '0')
         self.end_headers()
 
     def do_GET(self):
         if self.path == '/health' or self.path == '/':
-            self.send_response(200)
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            resp = {
+            resp = json.dumps({
                 "status": "ok",
                 "agent": "CTF Swarm Native Python Desktop Agent v2.0 (Stego + Recursive Matryoshka ZIP Engine)",
                 "port": PORT
-            }
-            self.wfile.write(json.dumps(resp).encode('utf-8'))
+            }).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(resp)))
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            self.wfile.write(resp)
             return
         
+        err = json.dumps({"error": "Not Found"}).encode('utf-8')
         self.send_response(404)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(err)))
+        self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(json.dumps({"error": "Not Found"}).encode('utf-8'))
+        self.wfile.write(err)
 
     def do_POST(self):
         if self.path in ('/api/analyze-stego', '/api/analyze-archive', '/api/analyze-file'):
@@ -134,40 +143,59 @@ class CTFAgentHandler(http.server.BaseHTTPRequestHandler):
                     if all(32 <= ord(c) <= 126 for c in m):
                         discovered_flags.add(m)
 
-                self.send_response(200)
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                
-                resp_payload = {
+                resp_payload = json.dumps({
                     "success": True,
                     "stdout": stdout_str,
                     "stderr": stderr_str,
                     "flags": list(discovered_flags),
                     "agentSource": "CTF Swarm Native Python Desktop Agent"
-                }
-                self.wfile.write(json.dumps(resp_payload).encode('utf-8'))
+                }).encode('utf-8')
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(resp_payload)))
+                self.send_header('Connection', 'close')
+                self.end_headers()
+                self.wfile.write(resp_payload)
                 return
 
             except Exception as e:
+                err_payload = json.dumps({"error": str(e)}).encode('utf-8')
                 self.send_response(500)
-                self.send_header('Access-Control-Allow-Origin', '*')
                 self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(err_payload)))
+                self.send_header('Connection', 'close')
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                self.wfile.write(err_payload)
                 return
 
+        err_resp = json.dumps({"error": "Endpoint not found"}).encode('utf-8')
         self.send_response(404)
-        self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(err_resp)))
+        self.send_header('Connection', 'close')
         self.end_headers()
-        self.wfile.write(json.dumps({"error": "Endpoint not found"}).encode('utf-8'))
+        self.wfile.write(err_resp)
 
 def run_server():
     server_address = ('', PORT)
-    with socketserver.ThreadingTCPServer(server_address, CTFAgentHandler) as httpd:
-        httpd.allow_reuse_address = True
-        print(f"""
+    try:
+        class DualStackServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+            address_family = getattr(socket, 'AF_INET6', socket.AF_INET)
+            daemon_threads = True
+            allow_reuse_address = True
+            def server_bind(self):
+                try:
+                    self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+                except Exception: pass
+                super().server_bind()
+        httpd = DualStackServer(server_address, CTFAgentHandler)
+    except Exception:
+        class ThreadingServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+            daemon_threads = True
+            allow_reuse_address = True
+        httpd = ThreadingServer(server_address, CTFAgentHandler)
+
+    print(f"""
 ============================================================
   🤖 CTF SWARM NATIVE PYTHON DESKTOP AGENT (ONLINE)
 ============================================================
@@ -179,6 +207,7 @@ def run_server():
   nested zip archive challenges to run on YOUR PC!
 ============================================================
 """)
+    with httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
