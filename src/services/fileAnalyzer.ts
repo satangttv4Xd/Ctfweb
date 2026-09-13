@@ -1,4 +1,5 @@
 import type { AttachedFile, FileCategory, AgentId, FileAnalysisDetails } from '../types';
+import { isZipBuffer, solveMatryoshkaZip } from './zipSolver';
 
 /**
  * Format bytes to readable string (e.g. 1.25 MB)
@@ -671,15 +672,34 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         if (m) parsedInitialPwd = m[1].trim();
       }
 
-      // Try Local Machine Agent Bridge (http://localhost:7788)
-      try {
-        const payload = JSON.stringify({
-          fileName: file.name,
-          fileBase64,
-          category,
-          initialPassword: parsedInitialPwd,
-          challengeText: options?.challengeText
-        });
+      // 1. If ZIP Archive: Run Client-side Pure JS Recursive Engine
+      if (category === 'archive' || isZipBuffer(bytes) || file.name.toLowerCase().endsWith('.zip')) {
+        try {
+          const clientZipRes = await solveMatryoshkaZip(bytes, parsedInitialPwd);
+          if (clientZipRes.flags && clientZipRes.flags.length > 0) {
+            clientZipRes.flags.forEach(f => flagCandidates.push(f));
+          }
+          if (clientZipRes.stdout) {
+            details.pythonStdout = clientZipRes.stdout;
+          }
+          if (clientZipRes.layersUnpacked > 1) {
+            summary = `ไฟล์ Archive แบบซ้อนหลายชั้น (${clientZipRes.layersUnpacked} ชั้น, ปลดล็อครหัสผ่านต่อเนื่องสำเร็จ)`;
+          }
+        } catch (zipErr) {
+          console.warn('Client-side zip unpack warning:', zipErr);
+        }
+      }
+
+      // 2. Try Local Machine Agent Bridge (http://localhost:7788) if not already solved
+      if (flagCandidates.length === 0) {
+        try {
+          const payload = JSON.stringify({
+            fileName: file.name,
+            fileBase64,
+            category,
+            initialPassword: parsedInitialPwd,
+            challengeText: options?.challengeText
+          });
         let localAgentRes: Response | null = null;
         try {
           localAgentRes = await fetch('http://127.0.0.1:7788/api/analyze-stego', {
@@ -735,6 +755,7 @@ ${zipInfo.permissions.length > 0 ? `Permissions: ${zipInfo.permissions.slice(0, 
         } catch {
           // ignore
         }
+      }
       }
     }
   } catch {
@@ -893,9 +914,14 @@ ${file.rawText.length > 4000 ? '\n... [Remaining text truncated] ...' : ''}
       pythonAgentOutput = `\n- **Local Python Stego Engine Analysis Output**:\n\`\`\`\n${file.details.pythonStdout}\n\`\`\``;
     }
 
-    const flagAlert = file.flagCandidates && file.flagCandidates.length > 0
-      ? `\n> 🚩 **FLAG STATUS:** ตรวจพบสตริงก์/LSB Flag ในไฟล์นี้: ${file.flagCandidates.map(f => `\`${f}\``).join(', ')}\n`
-      : `\n> ℹ️ **FLAG STATUS:** ไม่มีข้อมูลของ Flag ในไฟล์นี้ (ไม่พบสตริงก์ Flag มาตรฐาน — เป็นไฟล์ทั่วไป หรือ Flag ซ่อนอยู่ใน Logic โปรแกรม ให้วิเคราะห์จากโครงสร้างภายในและข้อมูลที่แสดง)\n`;
+    let flagAlert = '';
+    if (file.flagCandidates && file.flagCandidates.length > 0) {
+      flagAlert = `\n> 🚩 **FLAG STATUS:** ตรวจพบสตริงก์/LSB Flag ในไฟล์นี้: ${file.flagCandidates.map(f => `\`${f}\``).join(', ')}\n`;
+    } else if (file.category === 'archive' || file.category === 'binary' || file.category === 'pcap') {
+      flagAlert = `\n> 🔐 **CHALLENGE ARTIFACT:** ไฟล์ประเภท ${file.categoryThai} (${file.category.toUpperCase()}) — ให้วิเคราะห์โครงสร้าง ถอดรหัส หรือประกอบ Logic เพื่อหา Flag\n`;
+    } else {
+      flagAlert = `\n> ℹ️ **FLAG STATUS:** ไม่พบสตริงก์ Flag มาตรฐานในข้อมูลดิบ/LSB\n`;
+    }
 
     const stringsList = file.extractedStrings && file.extractedStrings.length > 0
       ? `\n<details>\n<summary>Top Extracted Strings (${file.extractedStrings.length})</summary>\n\n\`\`\`\n${file.extractedStrings.slice(0, 35).join('\n')}\n\`\`\`\n</details>`

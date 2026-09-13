@@ -85,14 +85,33 @@ export const SoloAgentView: React.FC<SoloAgentViewProps> = ({
   const handleSendMessage = async () => {
     if ((!inputText.trim() && soloFiles.length === 0) || isLoading) return;
 
-    const filesPrompt = buildFilesContextPrompt(soloFiles);
+    let currentSoloFiles = soloFiles;
+    const needsReanalysis = soloFiles.some(
+      f => f.rawFile && (f.category === 'archive' || (!f.hasFlag && inputText.trim().length > 0))
+    );
+    if (needsReanalysis) {
+      currentSoloFiles = await Promise.all(
+        soloFiles.map(async (f) => {
+          if (f.rawFile && (f.category === 'archive' || (!f.hasFlag && inputText.trim().length > 0))) {
+            try {
+              return await analyzeUploadedFile(f.rawFile, { challengeText: inputText });
+            } catch {
+              return f;
+            }
+          }
+          return f;
+        })
+      );
+    }
+
+    const filesPrompt = buildFilesContextPrompt(currentSoloFiles);
     const combinedPrompt = inputText.trim() 
       ? `${inputText.trim()}${filesPrompt}`
       : filesPrompt.trim();
 
     const displayContent = inputText.trim()
-      ? (soloFiles.length > 0 ? `${inputText.trim()} (📁 แนบไฟล์: ${soloFiles.map(f => f.name).join(', ')})` : inputText.trim())
-      : `📁 วิเคราะห์ไฟล์: ${soloFiles.map(f => `${f.name} [${f.categoryThai}]`).join(', ')}`;
+      ? (currentSoloFiles.length > 0 ? `${inputText.trim()} (📁 แนบไฟล์: ${currentSoloFiles.map(f => f.name).join(', ')})` : inputText.trim())
+      : `📁 วิเคราะห์ไฟล์: ${currentSoloFiles.map(f => `${f.name} [${f.categoryThai}]`).join(', ')}`;
 
     const userMsg: Message = {
       role: 'user',
@@ -106,7 +125,7 @@ export const SoloAgentView: React.FC<SoloAgentViewProps> = ({
       [selectedAgentId]: newMessages
     }));
 
-    const firstImage = soloFiles.find(f => f.imageBase64)?.imageBase64;
+    const firstImage = currentSoloFiles.find(f => f.imageBase64)?.imageBase64;
     setSoloFiles([]);
     setInputText('');
     setIsLoading(true);

@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { isZipBuffer, solveMatryoshkaZip } from '../src/services/zipSolver.ts';
 
-// JS Pure Implementation of Stego Solver running natively in Vercel Node.js Serverless Environment
+// JS Pure Implementation of Stego & Archive Solver running natively in Vercel Node.js Serverless Environment
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { fileName, fileBase64 } = req.body || {};
+    const { fileName, fileBase64, initialPassword, password, challengeText } = req.body || {};
 
     if (!fileBase64) {
       return res.status(400).json({ error: 'Missing fileBase64' });
@@ -15,6 +16,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const base64Data = fileBase64.replace(/^data:[^;]+;base64,/, '');
     const buffer = Buffer.from(base64Data, 'base64');
+    const u8 = new Uint8Array(buffer);
+
+    // 1. If Archive / ZIP: Run pure Node.js/Web recursive unzipper
+    const isZip = isZipBuffer(u8) || (fileName && fileName.toLowerCase().endsWith('.zip'));
+    if (isZip) {
+      let initPwd = initialPassword || password;
+      if (!initPwd && challengeText) {
+        const m = challengeText.match(/(?:รหัส(?:ผ่าน|ชั้น[^=:\s]+)?|password(?:\s+for\s+[^=:\s]+)?|pass|key|pwd)\s*[:=]?\s*([a-zA-Z0-9_!@#$%^&*()+=~-]+)/i);
+        if (m) initPwd = m[1].trim();
+      }
+      const zipRes = await solveMatryoshkaZip(u8, initPwd);
+      return res.status(200).json({
+        success: zipRes.success,
+        stdout: zipRes.stdout,
+        flags: zipRes.flags
+      });
+    }
+
     const logs: string[] = [];
 
     logs.push(`==========================================`);
@@ -23,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     logs.push(`==========================================\n`);
 
     const foundFlags = new Set<string>();
-    const flagRegex = /(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-z0-9_-]+\{[^\r\n}]{3,100}\}/gi;
+    const flagRegex = /(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[^\r\n}]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[^\r\n}]{3,100}\}/gi;
 
     // 1. Raw Bytes & ASCII Text Search
     logs.push(`[1/4] Checking Raw Bytes & Metadata Strings...`);
