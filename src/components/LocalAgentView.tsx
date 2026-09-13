@@ -251,6 +251,12 @@ with socketserver.TCPServer(("", PORT), H) as httpd:
   const copyScriptToClipboard = () => {
     const rawPy = `import http.server, socketserver, json, re, tempfile, os, sys, base64, shutil, zipfile, subprocess
 
+if sys.platform == 'win32':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception: pass
+
 PORT = 7788
 REG = re.compile(r'(?:flag|ctf|elec|picoctf|thm|htb|sec)[a-z0-9_-]*\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}|[a-zA-Z0-9_-]{3,15}\{[A-Za-z0-9_\-!@#$%^&*()+=~]{3,100}\}', re.IGNORECASE)
 COMMON_PWDS = ["aq4cp79d", "", "password", "123456", "admin", "secret", "root", "flag", "ctf"]
