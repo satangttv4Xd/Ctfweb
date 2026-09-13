@@ -104,9 +104,10 @@ def solve_archive(file_path, init_pwd=None):
                     txt = raw.decode('latin-1', errors='ignore')
                     for m in REG.findall(txt): found_flags.add(m)
                     if f.lower() in NOTE_NAMES or f.lower().endswith('.txt'):
-                        for pat in [r'(?:password|pass|key|pwd)\\s*[:=]\\s*["\\']?([^\\s"\']+)', r'is\\s*[:=]\\s*["\\']?([^\\s"\']+)']:
+                        for pat in [r'(?:password|pass|key|pwd)\\s*[:=]\\s*(\\S+)', r'is\\s*[:=]\\s*(\\S+)']:
                             for match in re.findall(pat, txt, re.I):
-                                if match not in new_pwds: new_pwds.append(match)
+                                clean_p = match.strip('",;: ').strip("'")
+                                if clean_p and clean_p not in new_pwds: new_pwds.append(clean_p)
                         st = txt.strip()
                         if st and len(st) <= 64 and st not in new_pwds:
                             new_pwds.append(st)
@@ -308,9 +309,10 @@ def solve_archive(file_path, init_pwd=None):
                     txt = raw.decode('latin-1', errors='ignore')
                     for m in REG.findall(txt): found_flags.add(m)
                     if f.lower() in NOTE_NAMES or f.lower().endswith('.txt'):
-                        for pat in [r'(?:password|pass|key|pwd)\s*[:=]\s*["\']?([^\s"\']+)', r'is\s*[:=]\s*["\']?([^\s"\']+)']:
+                        for pat in [r'(?:password|pass|key|pwd)\\s*[:=]\\s*(\\S+)', r'is\\s*[:=]\\s*(\\S+)']:
                             for match in re.findall(pat, txt, re.I):
-                                if match not in new_pwds: new_pwds.append(match)
+                                clean_p = match.strip('",;: ').strip("'")
+                                if clean_p and clean_p not in new_pwds: new_pwds.append(clean_p)
                         st = txt.strip()
                         if st and len(st) <= 64 and st not in new_pwds:
                             new_pwds.append(st)
